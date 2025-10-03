@@ -68,6 +68,90 @@ services:
       timeout: 5s
       retries: 3
 
+  # MySQL para Documentos Service
+  mysql_documentos:
+    image: mysql:8.0
+    container_name: pontificia_mysql_documentos
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: documentos_db
+      MYSQL_USER: documentos_user
+      MYSQL_PASSWORD: documentos_password_123
+    ports:
+      - "3310:3306"
+    volumes:
+      - mysql_documentos_data:/var/lib/mysql
+    networks:
+      - pontificia_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # MySQL para Pagos Service
+  mysql_pagos:
+    image: mysql:8.0
+    container_name: pontificia_mysql_pagos
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: pagos_db
+      MYSQL_USER: pagos_user
+      MYSQL_PASSWORD: pagos_password_123
+    ports:
+      - "3311:3306"
+    volumes:
+      - mysql_pagos_data:/var/lib/mysql
+    networks:
+      - pontificia_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # MySQL para Reportes Service
+  mysql_reportes:
+    image: mysql:8.0
+    container_name: pontificia_mysql_reportes
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: reportes_db
+      MYSQL_USER: reportes_user
+      MYSQL_PASSWORD: reportes_password_123
+    ports:
+      - "3312:3306"
+    volumes:
+      - mysql_reportes_data:/var/lib/mysql
+    networks:
+      - pontificia_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # MySQL para Auditoria Service
+  mysql_auditoria:
+    image: mysql:8.0
+    container_name: pontificia_mysql_auditoria
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: auditoria_db
+      MYSQL_USER: auditoria_user
+      MYSQL_PASSWORD: auditoria_password_123
+    ports:
+      - "3313:3306"
+    volumes:
+      - mysql_auditoria_data:/var/lib/mysql
+    networks:
+      - pontificia_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
   # Redis para cache y Celery
   redis:
     image: redis:7-alpine
@@ -143,16 +227,14 @@ services:
       - "3001:8000"
     environment:
       - DEBUG=True
-      - POSTGRES_DB=sistema_pontificia
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_HOST=db
-      - POSTGRES_PORT=5432
+      - DATABASE_URL=mysql://auth_user:auth_password_123@mysql_auth:3306/auth_db
       - REDIS_URL=redis://redis:6379/1
+      - DJANGO_SECRET_KEY=auth-service-secret-key-for-docker
+      - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0,auth-service
     networks:
       - pontificia_network
     depends_on:
-      db:
+      mysql_auth:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -168,16 +250,14 @@ services:
       - "3002:8000"
     environment:
       - DEBUG=True
-      - POSTGRES_DB=sistema_pontificia
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_HOST=db
-      - POSTGRES_PORT=5432
-      - AUTH_SERVICE_URL=http://auth-service:8000
+      - DATABASE_URL=mysql://users_user:users_password_123@mysql_users:3306/users_db
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - DJANGO_SECRET_KEY=users-service-secret-key-for-docker
+      - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0,users-service
     networks:
       - pontificia_network
     depends_on:
-      db:
+      mysql_users:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -195,7 +275,7 @@ services:
       - DEBUG=True
       - DJANGO_SECRET_KEY=attendance-secret-key-for-docker
       - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0,attendance-service
-      - DATABASE_URL=sqlite:///db.sqlite3
+      - DATABASE_URL=mysql://asistencia_user:asistencia_password_123@mysql_asistencia:3306/asistencia_db
       - AUTH_SERVICE_URL=http://auth-service:3001
       - USERS_SERVICE_URL=http://users-service:3002
     volumes:
@@ -204,8 +284,12 @@ services:
     networks:
       - pontificia_network
     depends_on:
-      - auth-service
-      - users-service
+      mysql_asistencia:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+      users-service:
+        condition: service_started
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3003/api/health/"]
       interval: 30s
@@ -225,7 +309,7 @@ services:
       - DEBUG=True
       - DJANGO_SECRET_KEY=payments-secret-key-for-docker
       - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0,payments-service
-      - DATABASE_URL=sqlite:///db.sqlite3
+      - DATABASE_URL=mysql://pagos_user:pagos_password_123@mysql_pagos:3306/pagos_db
       - AUTH_SERVICE_URL=http://auth-service:3001
       - USERS_SERVICE_URL=http://users-service:3002
     volumes:
@@ -234,8 +318,12 @@ services:
     networks:
       - pontificia_network
     depends_on:
-      - auth-service
-      - users-service
+      mysql_pagos:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+      users-service:
+        condition: service_started
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3004/api/health/"]
       interval: 30s
@@ -255,7 +343,7 @@ services:
       - DEBUG=True
       - DJANGO_SECRET_KEY=documents-secret-key-for-docker
       - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0,documents-service
-      - DATABASE_URL=sqlite:///db.sqlite3
+      - DATABASE_URL=mysql://documentos_user:documentos_password_123@mysql_documentos:3306/documentos_db
       - AUTH_SERVICE_URL=http://auth-service:3001
       - USERS_SERVICE_URL=http://users-service:3002
     volumes:
@@ -265,8 +353,12 @@ services:
     networks:
       - pontificia_network
     depends_on:
-      - auth-service
-      - users-service
+      mysql_documentos:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+      users-service:
+        condition: service_started
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3005/api/health/"]
       interval: 30s
@@ -286,7 +378,7 @@ services:
       - DEBUG=True
       - DJANGO_SECRET_KEY=reports-secret-key-for-docker
       - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0,reports-service
-      - DATABASE_URL=sqlite:///db.sqlite3
+      - DATABASE_URL=mysql://reportes_user:reportes_password_123@mysql_reportes:3306/reportes_db
       - AUTH_SERVICE_URL=http://auth-service:3001
       - USERS_SERVICE_URL=http://users-service:3002
       - ATTENDANCE_SERVICE_URL=http://attendance-service:3003
@@ -297,10 +389,16 @@ services:
     networks:
       - pontificia_network
     depends_on:
-      - auth-service
-      - users-service
-      - attendance-service
-      - payments-service
+      mysql_reportes:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+      users-service:
+        condition: service_started
+      attendance-service:
+        condition: service_started
+      payments-service:
+        condition: service_started
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3006/api/health/"]
       interval: 30s
@@ -320,7 +418,7 @@ services:
       - DEBUG=True
       - DJANGO_SECRET_KEY=audit-secret-key-for-docker
       - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0,audit-service
-      - DATABASE_URL=sqlite:///db.sqlite3
+      - DATABASE_URL=mysql://auditoria_user:auditoria_password_123@mysql_auditoria:3306/auditoria_db
       - AUTH_SERVICE_URL=http://auth-service:3001
       - USERS_SERVICE_URL=http://users-service:3002
     volumes:
@@ -330,8 +428,12 @@ services:
     networks:
       - pontificia_network
     depends_on:
-      - auth-service
-      - users-service
+      mysql_auditoria:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+      users-service:
+        condition: service_started
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3007/api/health/"]
       interval: 30s
@@ -362,7 +464,7 @@ services:
     profiles:
       - production
 
-  # Adminer para gestión de base de datos
+  # Adminer para gestión de base de datos MySQL
   adminer:
     image: adminer
     container_name: pontificia_adminer
@@ -371,7 +473,13 @@ services:
     networks:
       - pontificia_network
     depends_on:
-      - db
+      - mysql_auth
+      - mysql_users
+      - mysql_asistencia
+      - mysql_documentos
+      - mysql_pagos
+      - mysql_reportes
+      - mysql_auditoria
     restart: unless-stopped
     profiles:
       - development
@@ -389,10 +497,24 @@ volumes:
   # Infraestructura
   redis_data:
     name: pontificia_redis_data
-  postgres_data:
-    name: pontificia_postgres_data
   nginx_logs:
     name: pontificia_nginx_logs
+  
+  # MySQL data volumes
+  mysql_auth_data:
+    name: pontificia_mysql_auth_data
+  mysql_users_data:
+    name: pontificia_mysql_users_data
+  mysql_asistencia_data:
+    name: pontificia_mysql_asistencia_data
+  mysql_documentos_data:
+    name: pontificia_mysql_documentos_data
+  mysql_pagos_data:
+    name: pontificia_mysql_pagos_data
+  mysql_reportes_data:
+    name: pontificia_mysql_reportes_data
+  mysql_auditoria_data:
+    name: pontificia_mysql_auditoria_data
   
   # Gateway
   gateway_logs:
