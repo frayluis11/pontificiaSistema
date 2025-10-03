@@ -1,0 +1,63 @@
+# Dependencias del Microservicio de AUDITORÍA
+# Django y extensiones
+Django==4.2.7
+djangorestframework==3.14.0
+django-cors-headers==4.3.1
+django-filter==23.3
+
+# Base de datos
+mysqlclient==2.2.0
+
+# Autenticación
+djangorestframework-simplejwt==5.3.0
+
+# Exportación de reportes
+reportlab==4.0.5
+openpyxl==3.1.2
+pandas==2.1.1
+
+# Utilidades
+python-dotenv==1.0.0
+Pillow==10.0.1
+
+# Desarrollo y testing
+pytest==7.4.2
+pytest-django==4.5.2
+factory-boy==3.3.0
+
+# Observabilidad
+sentry-sdk==1.32.0
+
+# Fecha y hora
+pytz==2023.3
+
+# Task Queue
+celery==5.3.4
+redis==5.0.1
+
+# API Documentation
+drf-spectacular==0.26.5
+
+# Environment Variables
+python-decouple==3.8
+
+# CORS Headers
+django-cors-headers==4.3.1
+
+# Additional utilities
+Pillow==10.1.0  # For image handling
+python-dateutil==2.8.2  # For date utilities
+pytz==2023.3  # Timezone support
+
+# Development dependencies
+flake8==6.1.0  # Code linting
+black==23.9.1  # Code formatting
+isort==5.12.0  # Import sorting
+
+# Testing
+pytest==7.4.3
+pytest-django==4.7.0
+factory-boy==3.3.0  # Test data generation
+
+# Production server
+gunicorn==21.2.0

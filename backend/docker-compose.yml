@@ -1,0 +1,377 @@
+version: '3.8'
+
+services:
+  # ===============================================================================
+  # INFRAESTRUCTURA
+  # ===============================================================================
+  
+  # Redis para cache y rate limiting
+  redis:
+    image: redis:7-alpine
+    container_name: pontificia_redis
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - pontificia_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Base de datos PostgreSQL (opcional)
+  db:
+    image: postgres:15-alpine
+    container_name: pontificia_db
+    environment:
+      POSTGRES_DB: pontificia
+      POSTGRES_USER: pontificia_user
+      POSTGRES_PASSWORD: pontificia_pass
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init_postgres.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - pontificia_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pontificia_user -d pontificia"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ===============================================================================
+  # API GATEWAY - PUNTO DE ENTRADA PRINCIPAL
+  # ===============================================================================
+  
+  gateway:
+    build:
+      context: ./gateway
+      dockerfile: Dockerfile
+    container_name: pontificia_gateway
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=True
+      - DJANGO_SECRET_KEY=gateway-secret-key-for-docker
+      - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0,gateway
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=sqlite:///db.sqlite3
+      # URLs de microservicios
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - USERS_SERVICE_URL=http://users-service:3002
+      - ATTENDANCE_SERVICE_URL=http://attendance-service:3003
+      - PAYMENTS_SERVICE_URL=http://payments-service:3004
+      - DOCUMENTS_SERVICE_URL=http://documents-service:3005
+      - REPORTS_SERVICE_URL=http://reports-service:3006
+      - AUDIT_SERVICE_URL=http://audit-service:3007
+      # Gateway config
+      - GATEWAY_ENABLE_PROXY=True
+      - GATEWAY_ENABLE_JWT_VALIDATION=True
+      - GATEWAY_ENABLE_RATE_LIMITING=True
+      - CORS_ALLOW_ALL_ORIGINS=True
+    volumes:
+      - ./gateway:/app
+      - gateway_logs:/app/logs
+    networks:
+      - pontificia_network
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # ===============================================================================
+  # MICROSERVICIOS
+  # ===============================================================================
+
+  # Servicio de Autenticación
+  auth-service:
+    build:
+      context: ./auth
+      dockerfile: Dockerfile
+    container_name: pontificia_auth
+    ports:
+      - "3001:8000"
+    environment:
+      - DEBUG=True
+      - POSTGRES_DB=sistema_pontificia
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - REDIS_URL=redis://redis:6379/1
+    networks:
+      - pontificia_network
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Servicio de Usuarios
+  users-service:
+    build:
+      context: ./users
+      dockerfile: Dockerfile
+    container_name: pontificia_users
+    ports:
+      - "3002:8000"
+    environment:
+      - DEBUG=True
+      - POSTGRES_DB=sistema_pontificia
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - AUTH_SERVICE_URL=http://auth-service:8000
+    networks:
+      - pontificia_network
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Servicio de Asistencias
+  attendance-service:
+    build:
+      context: ./asistencia
+      dockerfile: Dockerfile
+    container_name: pontificia_attendance
+    ports:
+      - "3003:3003"
+    environment:
+      - DEBUG=True
+      - DJANGO_SECRET_KEY=attendance-secret-key-for-docker
+      - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0,attendance-service
+      - DATABASE_URL=sqlite:///db.sqlite3
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - USERS_SERVICE_URL=http://users-service:3002
+    volumes:
+      - ./asistencia:/app
+      - attendance_data:/app/data
+    networks:
+      - pontificia_network
+    depends_on:
+      - auth-service
+      - users-service
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3003/api/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # Servicio de Pagos
+  payments-service:
+    build:
+      context: ./pagos
+      dockerfile: Dockerfile
+    container_name: pontificia_payments
+    ports:
+      - "3004:3004"
+    environment:
+      - DEBUG=True
+      - DJANGO_SECRET_KEY=payments-secret-key-for-docker
+      - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0,payments-service
+      - DATABASE_URL=sqlite:///db.sqlite3
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - USERS_SERVICE_URL=http://users-service:3002
+    volumes:
+      - ./pagos:/app
+      - payments_data:/app/data
+    networks:
+      - pontificia_network
+    depends_on:
+      - auth-service
+      - users-service
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3004/api/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # Servicio de Documentos
+  documents-service:
+    build:
+      context: ./documentos
+      dockerfile: Dockerfile
+    container_name: pontificia_documents
+    ports:
+      - "3005:3005"
+    environment:
+      - DEBUG=True
+      - DJANGO_SECRET_KEY=documents-secret-key-for-docker
+      - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0,documents-service
+      - DATABASE_URL=sqlite:///db.sqlite3
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - USERS_SERVICE_URL=http://users-service:3002
+    volumes:
+      - ./documentos:/app
+      - documents_data:/app/data
+      - documents_files:/app/media
+    networks:
+      - pontificia_network
+    depends_on:
+      - auth-service
+      - users-service
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3005/api/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # Servicio de Reportes
+  reports-service:
+    build:
+      context: ./reportes
+      dockerfile: Dockerfile
+    container_name: pontificia_reports
+    ports:
+      - "3006:3006"
+    environment:
+      - DEBUG=True
+      - DJANGO_SECRET_KEY=reports-secret-key-for-docker
+      - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0,reports-service
+      - DATABASE_URL=sqlite:///db.sqlite3
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - USERS_SERVICE_URL=http://users-service:3002
+      - ATTENDANCE_SERVICE_URL=http://attendance-service:3003
+      - PAYMENTS_SERVICE_URL=http://payments-service:3004
+    volumes:
+      - ./reportes:/app
+      - reports_data:/app/data
+    networks:
+      - pontificia_network
+    depends_on:
+      - auth-service
+      - users-service
+      - attendance-service
+      - payments-service
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3006/api/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # Servicio de Auditoría
+  audit-service:
+    build:
+      context: ./auditoria
+      dockerfile: Dockerfile
+    container_name: pontificia_audit
+    ports:
+      - "3007:3007"
+    environment:
+      - DEBUG=True
+      - DJANGO_SECRET_KEY=audit-secret-key-for-docker
+      - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0,audit-service
+      - DATABASE_URL=sqlite:///db.sqlite3
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - USERS_SERVICE_URL=http://users-service:3002
+    volumes:
+      - ./auditoria:/app
+      - audit_data:/app/data
+      - audit_logs:/app/logs
+    networks:
+      - pontificia_network
+    depends_on:
+      - auth-service
+      - users-service
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3007/api/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # ===============================================================================
+  # UTILIDADES DE DESARROLLO
+  # ===============================================================================
+  
+  # Nginx para producción (opcional)
+  nginx:
+    image: nginx:alpine
+    container_name: pontificia_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d
+      - nginx_logs:/var/log/nginx
+    networks:
+      - pontificia_network
+    depends_on:
+      - gateway
+    restart: unless-stopped
+    profiles:
+      - production
+
+  # Adminer para gestión de base de datos
+  adminer:
+    image: adminer
+    container_name: pontificia_adminer
+    ports:
+      - "8080:8080"
+    networks:
+      - pontificia_network
+    depends_on:
+      - db
+    restart: unless-stopped
+    profiles:
+      - development
+
+# ===============================================================================
+# REDES Y VOLÚMENES
+# ===============================================================================
+
+networks:
+  pontificia_network:
+    driver: bridge
+    name: pontificia_network
+
+volumes:
+  # Infraestructura
+  redis_data:
+    name: pontificia_redis_data
+  postgres_data:
+    name: pontificia_postgres_data
+  nginx_logs:
+    name: pontificia_nginx_logs
+  
+  # Gateway
+  gateway_logs:
+    name: pontificia_gateway_logs
+  
+  # Microservicios data
+  auth_data:
+    name: pontificia_auth_data
+  users_data:
+    name: pontificia_users_data
+  attendance_data:
+    name: pontificia_attendance_data
+  payments_data:
+    name: pontificia_payments_data
+  documents_data:
+    name: pontificia_documents_data
+  documents_files:
+    name: pontificia_documents_files
+  reports_data:
+    name: pontificia_reports_data
+  audit_data:
+    name: pontificia_audit_data
+  audit_logs:
+    name: pontificia_audit_logs
