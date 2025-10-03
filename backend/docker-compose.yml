@@ -2,42 +2,84 @@ version: '3.8'
 
 services:
   # ===============================================================================
-  # INFRAESTRUCTURA
+  # INFRAESTRUCTURA - BASES DE DATOS MYSQL
   # ===============================================================================
   
-  # Redis para cache y rate limiting
+  # MySQL para Auth Service
+  mysql_auth:
+    image: mysql:8.0
+    container_name: pontificia_mysql_auth
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: auth_db
+      MYSQL_USER: auth_user
+      MYSQL_PASSWORD: auth_password_123
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_auth_data:/var/lib/mysql
+    networks:
+      - pontificia_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # MySQL para Users Service
+  mysql_users:
+    image: mysql:8.0
+    container_name: pontificia_mysql_users
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: users_db
+      MYSQL_USER: users_user
+      MYSQL_PASSWORD: users_password_123
+    ports:
+      - "3308:3306"
+    volumes:
+      - mysql_users_data:/var/lib/mysql
+    networks:
+      - pontificia_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # MySQL para Asistencia Service
+  mysql_asistencia:
+    image: mysql:8.0
+    container_name: pontificia_mysql_asistencia
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: asistencia_db
+      MYSQL_USER: asistencia_user
+      MYSQL_PASSWORD: asistencia_password_123
+    ports:
+      - "3309:3306"
+    volumes:
+      - mysql_asistencia_data:/var/lib/mysql
+    networks:
+      - pontificia_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Redis para cache y Celery
   redis:
     image: redis:7-alpine
     container_name: pontificia_redis
     ports:
-      - "6380:6379"
+      - "6379:6379"
     volumes:
       - redis_data:/data
     networks:
       - pontificia_network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-
-  # Base de datos PostgreSQL (opcional)
-  db:
-    image: postgres:15-alpine
-    container_name: pontificia_db
-    environment:
-      POSTGRES_DB: pontificia
-      POSTGRES_USER: pontificia_user
-      POSTGRES_PASSWORD: pontificia_pass
-    ports:
-      - "5433:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./docker/init_postgres.sql:/docker-entrypoint-initdb.d/init.sql
-    networks:
-      - pontificia_network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U pontificia_user -d pontificia"]
       interval: 10s
       timeout: 5s
       retries: 3
