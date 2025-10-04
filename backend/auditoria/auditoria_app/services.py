@@ -5,6 +5,7 @@ Service layer para el microservicio de auditoría
 from django.utils import timezone
 from django.conf import settings
 from django.core.cache import cache
+from django.db.models import Count
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional, Union
 import logging
@@ -19,6 +20,8 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from reportlab.lib.units import inch
 import openpyxl
 from openpyxl.styles import Font, Alignment, PatternFill
+from openpyxl.workbook.workbook import Workbook
+from openpyxl.worksheet.worksheet import Worksheet
 import pandas as pd
 
 from .models import ActividadSistema
@@ -40,12 +43,12 @@ class AuditoriaService:
     
     def registrar_actividad(self, 
                            usuario_id: Optional[int] = None,
-                           usuario_email: str = None,
+                           usuario_email: Optional[str] = None,
                            accion: str = 'OTHER',
                            recurso: str = 'OTHER',
-                           recurso_id: str = None,
-                           detalle: Dict = None,
-                           request_data: Dict = None,
+                           recurso_id: Optional[str] = None,
+                           detalle: Optional[Dict] = None,
+                           request_data: Optional[Dict] = None,
                            **kwargs) -> ActividadSistema:
         """
         Registrar nueva actividad en el sistema
@@ -110,9 +113,9 @@ class AuditoriaService:
             logger.error(f"Error al registrar actividad: {str(e)}")
             raise
     
-    def registrar_login(self, usuario_id: int, usuario_email: str = None,
-                       ip_address: str = None, user_agent: str = None,
-                       exito: bool = True, detalle: Dict = None) -> ActividadSistema:
+    def registrar_login(self, usuario_id: int, usuario_email: Optional[str] = None,
+                       ip_address: Optional[str] = None, user_agent: Optional[str] = None,
+                       exito: bool = True, detalle: Optional[Dict] = None) -> ActividadSistema:
         """
         Registrar intento de login
         
@@ -150,8 +153,8 @@ class AuditoriaService:
         )
     
     def registrar_operacion_crud(self, usuario_id: int, accion: str,
-                                recurso: str, recurso_id: str = None,
-                                detalle: Dict = None, exito: bool = True,
+                                recurso: str, recurso_id: Optional[str] = None,
+                                detalle: Optional[Dict] = None, exito: bool = True,
                                 **kwargs) -> ActividadSistema:
         """
         Registrar operación CRUD
@@ -197,7 +200,7 @@ class AuditoriaService:
         )
     
     def registrar_error(self, usuario_id: Optional[int], recurso: str,
-                       mensaje_error: str, detalle: Dict = None,
+                       mensaje_error: str, detalle: Optional[Dict] = None,
                        **kwargs) -> ActividadSistema:
         """
         Registrar error del sistema
@@ -265,7 +268,7 @@ class AuditoriaService:
         """
         return list(self.repository.obtener_filtros_avanzados(**filtros))
     
-    def buscar_actividades(self, termino: str, campos: List[str] = None) -> List[ActividadSistema]:
+    def buscar_actividades(self, termino: str, campos: Optional[List[str]] = None) -> List[ActividadSistema]:
         """
         Buscar actividades por término
         
@@ -276,6 +279,8 @@ class AuditoriaService:
         Returns:
             Lista de actividades encontradas
         """
+        if campos is None:
+            campos = ['usuario_email', 'accion', 'recurso', 'detalle']
         return list(self.repository.buscar_actividades(termino, campos))
     
     def obtener_actividades_criticas(self, horas: int = 24) -> List[ActividadSistema]:
@@ -293,8 +298,8 @@ class AuditoriaService:
     
     # ========== ESTADÍSTICAS Y ANALYTICS ==========
     
-    def obtener_estadisticas_sistema(self, fecha_inicio: datetime = None,
-                                   fecha_fin: datetime = None) -> Dict[str, Any]:
+    def obtener_estadisticas_sistema(self, fecha_inicio: Optional[datetime] = None,
+                                   fecha_fin: Optional[datetime] = None) -> Dict[str, Any]:
         """
         Obtener estadísticas del sistema
         
@@ -367,7 +372,7 @@ class AuditoriaService:
     
     # ========== EXPORTACIÓN ==========
     
-    def exportar_actividades_csv(self, filtros: Dict[str, Any] = None) -> str:
+    def exportar_actividades_csv(self, filtros: Optional[Dict[str, Any]] = None) -> str:
         """
         Exportar actividades a CSV
         
@@ -417,7 +422,7 @@ class AuditoriaService:
             logger.error(f"Error al exportar CSV: {str(e)}")
             raise
     
-    def exportar_actividades_excel(self, filtros: Dict[str, Any] = None) -> str:
+    def exportar_actividades_excel(self, filtros: Optional[Dict[str, Any]] = None) -> str:
         """
         Exportar actividades a Excel
         
@@ -431,8 +436,8 @@ class AuditoriaService:
             actividades = self.repository.obtener_filtros_avanzados(**(filtros or {}))
             
             # Crear workbook
-            wb = openpyxl.Workbook()
-            ws = wb.active
+            wb: Workbook = openpyxl.Workbook()
+            ws: Worksheet = wb.active  # type: ignore
             ws.title = "Actividades de Auditoría"
             
             # Estilos
@@ -497,7 +502,7 @@ class AuditoriaService:
             logger.error(f"Error al exportar Excel: {str(e)}")
             raise
     
-    def exportar_actividades_pdf(self, filtros: Dict[str, Any] = None) -> str:
+    def exportar_actividades_pdf(self, filtros: Optional[Dict[str, Any]] = None) -> str:
         """
         Exportar actividades a PDF
         
@@ -620,8 +625,8 @@ class AuditoriaService:
         
         return tags
     
-    def _calcular_metricas_adicionales(self, fecha_inicio: datetime = None,
-                                     fecha_fin: datetime = None) -> Dict[str, Any]:
+    def _calcular_metricas_adicionales(self, fecha_inicio: Optional[datetime] = None,
+                                     fecha_fin: Optional[datetime] = None) -> Dict[str, Any]:
         """Calcular métricas adicionales del sistema"""
         metricas = {}
         
@@ -644,10 +649,10 @@ class AuditoriaService:
     
     def _obtener_actividades_por_hora(self, filtros: Dict) -> Dict[int, int]:
         """Obtener distribución de actividades por hora"""
-        from django.db.models import Count, Extract
+        from django.db.models import Count
         
         actividades = self.repository.filter(**filtros).annotate(
-            hora=Extract('fecha', 'hour')
+            # hora=actividades.extra(select={'hora': "EXTRACT(hour FROM fecha)"})"
         ).values('hora').annotate(
             count=Count('hora')
         ).order_by('hora')
@@ -661,11 +666,15 @@ class AuditoriaService:
             'metricas_rendimiento',
         ]
         for pattern in cache_keys:
-            cache.delete_pattern(pattern)
+            try:
+                cache.delete_pattern(pattern)
+            except AttributeError:
+                # Fallback si delete_pattern no está disponible
+                cache.clear()
     
     # ========== MANTENIMIENTO ==========
     
-    def limpiar_actividades_antiguas(self, dias_retencion: int = None) -> int:
+    def limpiar_actividades_antiguas(self, dias_retencion: Optional[int] = None) -> int:
         """
         Limpiar actividades antiguas
         
@@ -687,8 +696,8 @@ class AuditoriaService:
     
     # ========== MÉTODOS PARA OBSERVER ==========
     
-    def registrar_cambio_documento(self, usuario_id: int = None, documento_id: str = None,
-                                  accion: str = 'UPDATE', detalle: Dict = None,
+    def registrar_cambio_documento(self, usuario_id: Optional[int] = None, documento_id: Optional[str] = None,
+                                  accion: str = 'UPDATE', detalle: Optional[Dict] = None,
                                   microservicio: str = 'DOCUMENTS') -> ActividadSistema:
         """
         Registrar cambio en documento
@@ -709,8 +718,8 @@ class AuditoriaService:
             nivel_criticidad='MEDIUM'
         )
     
-    def registrar_cambio_pago(self, usuario_id: int = None, pago_id: str = None,
-                             accion: str = 'UPDATE', detalle: Dict = None,
+    def registrar_cambio_pago(self, usuario_id: Optional[int] = None, pago_id: Optional[str] = None,
+                             accion: str = 'UPDATE', detalle: Optional[Dict] = None,
                              microservicio: str = 'PAYMENTS') -> ActividadSistema:
         """
         Registrar cambio en pago
@@ -731,8 +740,8 @@ class AuditoriaService:
             nivel_criticidad='HIGH'
         )
     
-    def registrar_cambio_usuario(self, usuario_id: int = None, accion: str = 'UPDATE',
-                                detalle: Dict = None, microservicio: str = 'USERS') -> ActividadSistema:
+    def registrar_cambio_usuario(self, usuario_id: Optional[int] = None, accion: str = 'UPDATE',
+                                detalle: Optional[Dict] = None, microservicio: str = 'USERS') -> ActividadSistema:
         """
         Registrar cambio en usuario
         """
@@ -751,8 +760,8 @@ class AuditoriaService:
             nivel_criticidad='MEDIUM'
         )
     
-    def registrar_cambio_asistencia(self, usuario_id: int = None, asistencia_id: str = None,
-                                   accion: str = 'UPDATE', detalle: Dict = None,
+    def registrar_cambio_asistencia(self, usuario_id: Optional[int] = None, asistencia_id: Optional[str] = None,
+                                   accion: str = 'UPDATE', detalle: Optional[Dict] = None,
                                    microservicio: str = 'ATTENDANCE') -> ActividadSistema:
         """
         Registrar cambio en asistencia
@@ -775,7 +784,7 @@ class AuditoriaService:
     
     # ========== MÉTODOS DE EXPORTACIÓN ==========
     
-    def exportar_csv(self, filtros: Dict = None) -> str:
+    def exportar_csv(self, filtros: Optional[Dict] = None) -> str:
         """
         Exportar logs a CSV
         """
@@ -815,7 +824,7 @@ class AuditoriaService:
             logger.error(f"Error al exportar CSV: {str(e)}")
             raise
     
-    def exportar_excel(self, filtros: Dict = None) -> bytes:
+    def exportar_excel(self, filtros: Optional[Dict] = None) -> bytes:
         """
         Exportar logs a Excel
         """
@@ -884,7 +893,7 @@ class AuditoriaService:
             logger.error(f"Error al exportar Excel: {str(e)}")
             raise
     
-    def exportar_pdf(self, filtros: Dict = None) -> bytes:
+    def exportar_pdf(self, filtros: Optional[Dict] = None) -> bytes:
         """
         Exportar logs a PDF
         """

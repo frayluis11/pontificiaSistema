@@ -27,7 +27,7 @@ def home_view(request):
         'service': 'Microservicio de Reportes',
         'version': '1.0.0',
         'status': 'active',
-        'timestamp': timezone.now(),
+        'timestamp': timezone.now().isoformat(),
         'description': 'Servicio para generación y gestión de reportes',
         'endpoints': {
             'health': '/api/health/',

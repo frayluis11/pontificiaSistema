@@ -19,17 +19,17 @@ class ReporteDTO:
     
     def __init__(
         self,
-        id: str = None,
-        tipo: str = None,
-        parametros: Dict[str, Any] = None,
-        formato: str = None,
-        autor_id: int = None,
-        estado: str = None,
-        archivo: str = None,
-        fecha_creacion: datetime = None,
-        fecha_actualizacion: datetime = None,
-        expires_at: datetime = None,
-        titulo: str = None
+        id: Optional[str] = None,
+        tipo: Optional[str] = None,
+        parametros: Optional[Dict[str, Any]] = None,
+        formato: Optional[str] = None,
+        autor_id: Optional[int] = None,
+        estado: Optional[str] = None,
+        archivo: Optional[str] = None,
+        fecha_creacion: Optional[datetime] = None,
+        fecha_actualizacion: Optional[datetime] = None,
+        expires_at: Optional[datetime] = None,
+        titulo: Optional[str] = None
     ):
         self.id = id
         self.tipo = tipo
@@ -82,12 +82,12 @@ class MetricaDTO:
     
     def __init__(
         self,
-        id: int = None,
-        nombre: str = None,
-        valor: float = None,
-        periodo: str = None,
-        fecha_calculo: datetime = None,
-        metadatos: Dict[str, Any] = None,
+        id: Optional[int] = None,
+        nombre: Optional[str] = None,
+        valor: Optional[float] = None,
+        periodo: Optional[str] = None,
+        fecha_calculo: Optional[datetime] = None,
+        metadatos: Optional[Dict[str, Any]] = None,
         activa: bool = True
     ):
         self.id = id
@@ -135,8 +135,8 @@ class ReporteResumenDTO:
         estado: str,
         titulo: str,
         fecha_creacion: datetime,
-        expires_at: datetime = None,
-        tamaño_archivo: int = None
+        expires_at: Optional[datetime] = None,
+        tamaño_archivo: Optional[int] = None
     ):
         self.id = id
         self.tipo = tipo

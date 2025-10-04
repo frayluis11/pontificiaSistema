@@ -87,39 +87,21 @@ WSGI_APPLICATION = 'auditoria_service.wsgi.application'
 # Usar SQLite para desarrollo local, MySQL para producción
 DB_ENGINE = os.getenv('DB_ENGINE', 'sqlite')
 
-if DB_ENGINE == 'mysql':
-    # MySQL - Puerto 3313 para auditoría
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.mysql',
-            'NAME': os.getenv('DB_NAME', 'auditoria_db'),
-            'USER': os.getenv('DB_USER', 'auditoria_user'),
-            'PASSWORD': os.getenv('DB_PASSWORD', 'auditoria_password'),
-            'HOST': os.getenv('DB_HOST', 'localhost'),
-            'PORT': os.getenv('DB_PORT', '3313'),
-            'OPTIONS': {
-                'charset': 'utf8mb4',
-                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-                'isolation_level': 'read committed',
-            },
-        }
+# Database configuration - MySQL Puerto 3313 para AUDITORIA
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': os.environ.get('DB_NAME', 'auditoria_db'),
+        'USER': os.environ.get('DB_USER', 'root'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', 'root'),
+        'HOST': os.environ.get('DB_HOST', 'localhost'),
+        'PORT': os.environ.get('DB_PORT', '3312'),
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+        },
     }
-else:
-    # Database configuration using environment variables
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.mysql',
-            'NAME': os.environ.get('DB_NAME', 'auditoria_db'),
-            'USER': os.environ.get('DB_USER', 'root'),
-            'PASSWORD': os.environ.get('DB_PASSWORD', 'root'),
-            'HOST': os.environ.get('DB_HOST', 'localhost'),
-            'PORT': os.environ.get('DB_PORT', '3312'),
-            'OPTIONS': {
-                'charset': 'utf8mb4',
-                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-            },
-        }
-    }
+}
 
 # ========== REST FRAMEWORK CONFIGURATION ==========
 REST_FRAMEWORK = {
