@@ -15,8 +15,38 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
+from django.http import JsonResponse
+
+def health_check(request):
+    """Health check endpoint para verificar que el servicio está funcionando"""
+    return JsonResponse({
+        'status': 'healthy',
+        'service': 'asistencia_service',
+        'version': '1.0.0'
+    })
+
+def service_info(request):
+    """Información del servicio"""
+    return JsonResponse({
+        'service': 'Sistema Pontificia - Servicio de Asistencia',
+        'version': '1.0.0',
+        'description': 'Microservicio para gestión de asistencia y justificaciones de docentes',
+        'endpoints': {
+            'asistencia': '/api/asistencia/',
+            'admin': '/admin/',
+            'health': '/health/',
+        }
+    })
 
 urlpatterns = [
+    # Admin
     path('admin/', admin.site.urls),
+    
+    # Health check
+    path('health/', health_check, name='health_check'),
+    path('', service_info, name='service_info'),
+    
+    # API endpoints
+    path('api/asistencia/', include('asistencia_app.urls')),
 ]

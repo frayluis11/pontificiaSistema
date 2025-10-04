@@ -684,3 +684,290 @@ class AuditoriaService:
         self._invalidar_cache_estadisticas()
         
         return eliminadas
+    
+    # ========== MÉTODOS PARA OBSERVER ==========
+    
+    def registrar_cambio_documento(self, usuario_id: int = None, documento_id: str = None,
+                                  accion: str = 'UPDATE', detalle: Dict = None,
+                                  microservicio: str = 'DOCUMENTS') -> ActividadSistema:
+        """
+        Registrar cambio en documento
+        """
+        detalle_doc = detalle or {}
+        detalle_doc.update({
+            'documento_id': documento_id,
+            'microservicio': microservicio,
+            'cambio_automatico': True
+        })
+        
+        return self.registrar_actividad(
+            usuario_id=usuario_id,
+            accion=accion,
+            recurso='DOCUMENT_FILE',
+            recurso_id=documento_id,
+            detalle=detalle_doc,
+            nivel_criticidad='MEDIUM'
+        )
+    
+    def registrar_cambio_pago(self, usuario_id: int = None, pago_id: str = None,
+                             accion: str = 'UPDATE', detalle: Dict = None,
+                             microservicio: str = 'PAYMENTS') -> ActividadSistema:
+        """
+        Registrar cambio en pago
+        """
+        detalle_pago = detalle or {}
+        detalle_pago.update({
+            'pago_id': pago_id,
+            'microservicio': microservicio,
+            'cambio_automatico': True
+        })
+        
+        return self.registrar_actividad(
+            usuario_id=usuario_id,
+            accion=accion,
+            recurso='PAYMENT_TRANSACTION',
+            recurso_id=pago_id,
+            detalle=detalle_pago,
+            nivel_criticidad='HIGH'
+        )
+    
+    def registrar_cambio_usuario(self, usuario_id: int = None, accion: str = 'UPDATE',
+                                detalle: Dict = None, microservicio: str = 'USERS') -> ActividadSistema:
+        """
+        Registrar cambio en usuario
+        """
+        detalle_usuario = detalle or {}
+        detalle_usuario.update({
+            'microservicio': microservicio,
+            'cambio_automatico': True
+        })
+        
+        return self.registrar_actividad(
+            usuario_id=usuario_id,
+            accion=accion,
+            recurso='USER_PROFILE',
+            recurso_id=str(usuario_id),
+            detalle=detalle_usuario,
+            nivel_criticidad='MEDIUM'
+        )
+    
+    def registrar_cambio_asistencia(self, usuario_id: int = None, asistencia_id: str = None,
+                                   accion: str = 'UPDATE', detalle: Dict = None,
+                                   microservicio: str = 'ATTENDANCE') -> ActividadSistema:
+        """
+        Registrar cambio en asistencia
+        """
+        detalle_asistencia = detalle or {}
+        detalle_asistencia.update({
+            'asistencia_id': asistencia_id,
+            'microservicio': microservicio,
+            'cambio_automatico': True
+        })
+        
+        return self.registrar_actividad(
+            usuario_id=usuario_id,
+            accion=accion,
+            recurso='ATTENDANCE_RECORD',
+            recurso_id=asistencia_id,
+            detalle=detalle_asistencia,
+            nivel_criticidad='LOW'
+        )
+    
+    # ========== MÉTODOS DE EXPORTACIÓN ==========
+    
+    def exportar_csv(self, filtros: Dict = None) -> str:
+        """
+        Exportar logs a CSV
+        """
+        try:
+            actividades = self.repository.obtener_actividades_filtradas(filtros or {})
+            
+            output = io.StringIO()
+            writer = csv.writer(output)
+            
+            # Escribir headers
+            writer.writerow([
+                'ID', 'Fecha', 'Usuario ID', 'Usuario Email', 'Acción',
+                'Recurso', 'Recurso ID', 'IP Address', 'Código Estado',
+                'Duración (ms)', 'Nivel Criticidad', 'Detalles'
+            ])
+            
+            # Escribir datos
+            for actividad in actividades:
+                writer.writerow([
+                    str(actividad.id),
+                    actividad.fecha.strftime('%Y-%m-%d %H:%M:%S'),
+                    actividad.usuario_id or '',
+                    actividad.usuario_email or '',
+                    actividad.get_accion_display(),
+                    actividad.get_recurso_display(),
+                    actividad.recurso_id or '',
+                    actividad.ip_address or '',
+                    actividad.codigo_estado or '',
+                    actividad.duracion_ms or '',
+                    actividad.get_nivel_criticidad_display(),
+                    json.dumps(actividad.detalle) if actividad.detalle else ''
+                ])
+            
+            return output.getvalue()
+            
+        except Exception as e:
+            logger.error(f"Error al exportar CSV: {str(e)}")
+            raise
+    
+    def exportar_excel(self, filtros: Dict = None) -> bytes:
+        """
+        Exportar logs a Excel
+        """
+        try:
+            actividades = self.repository.obtener_actividades_filtradas(filtros or {})
+            
+            # Crear workbook
+            wb = openpyxl.Workbook()
+            ws = wb.active
+            ws.title = "Audit Logs"
+            
+            # Configurar estilos
+            header_font = Font(bold=True, color="FFFFFF")
+            header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+            header_alignment = Alignment(horizontal="center", vertical="center")
+            
+            # Headers
+            headers = [
+                'ID', 'Fecha', 'Usuario ID', 'Usuario Email', 'Acción',
+                'Recurso', 'Recurso ID', 'IP Address', 'Código Estado',
+                'Duración (ms)', 'Nivel Criticidad', 'Detalles'
+            ]
+            
+            for col, header in enumerate(headers, 1):
+                cell = ws.cell(row=1, column=col, value=header)
+                cell.font = header_font
+                cell.fill = header_fill
+                cell.alignment = header_alignment
+            
+            # Datos
+            for row, actividad in enumerate(actividades, 2):
+                ws.cell(row=row, column=1, value=str(actividad.id))
+                ws.cell(row=row, column=2, value=actividad.fecha.strftime('%Y-%m-%d %H:%M:%S'))
+                ws.cell(row=row, column=3, value=actividad.usuario_id or '')
+                ws.cell(row=row, column=4, value=actividad.usuario_email or '')
+                ws.cell(row=row, column=5, value=actividad.get_accion_display())
+                ws.cell(row=row, column=6, value=actividad.get_recurso_display())
+                ws.cell(row=row, column=7, value=actividad.recurso_id or '')
+                ws.cell(row=row, column=8, value=actividad.ip_address or '')
+                ws.cell(row=row, column=9, value=actividad.codigo_estado or '')
+                ws.cell(row=row, column=10, value=actividad.duracion_ms or '')
+                ws.cell(row=row, column=11, value=actividad.get_nivel_criticidad_display())
+                ws.cell(row=row, column=12, value=json.dumps(actividad.detalle) if actividad.detalle else '')
+            
+            # Ajustar ancho de columnas
+            for column in ws.columns:
+                max_length = 0
+                column = [cell for cell in column]
+                for cell in column:
+                    try:
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                    except:
+                        pass
+                adjusted_width = min(max_length + 2, 50)
+                ws.column_dimensions[column[0].column_letter].width = adjusted_width
+            
+            # Guardar en memoria
+            output = io.BytesIO()
+            wb.save(output)
+            output.seek(0)
+            
+            return output.read()
+            
+        except Exception as e:
+            logger.error(f"Error al exportar Excel: {str(e)}")
+            raise
+    
+    def exportar_pdf(self, filtros: Dict = None) -> bytes:
+        """
+        Exportar logs a PDF
+        """
+        try:
+            actividades = self.repository.obtener_actividades_filtradas(filtros or {})
+            
+            # Crear buffer
+            buffer = io.BytesIO()
+            
+            # Crear documento
+            doc = SimpleDocTemplate(buffer, pagesize=A4)
+            elements = []
+            
+            # Estilos
+            styles = getSampleStyleSheet()
+            title_style = ParagraphStyle(
+                'CustomTitle',
+                parent=styles['Title'],
+                fontSize=16,
+                spaceAfter=30,
+                alignment=1  # Center
+            )
+            
+            # Título
+            title = Paragraph("Reporte de Auditoría del Sistema", title_style)
+            elements.append(title)
+            elements.append(Spacer(1, 20))
+            
+            # Información del reporte
+            info_data = [
+                ['Fecha de generación:', datetime.now().strftime('%d/%m/%Y %H:%M:%S')],
+                ['Total de registros:', str(len(actividades))],
+                ['Microservicio:', 'AUDITORÍA']
+            ]
+            
+            info_table = Table(info_data, colWidths=[2*inch, 3*inch])
+            info_table.setStyle(TableStyle([
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+            ]))
+            
+            elements.append(info_table)
+            elements.append(Spacer(1, 20))
+            
+            # Tabla de datos
+            if actividades:
+                table_data = [['Fecha', 'Usuario', 'Acción', 'Recurso', 'Estado']]
+                
+                for actividad in actividades[:100]:  # Limitar a 100 registros
+                    table_data.append([
+                        actividad.fecha.strftime('%d/%m %H:%M'),
+                        actividad.usuario_email[:20] + '...' if actividad.usuario_email and len(actividad.usuario_email) > 20 else (actividad.usuario_email or 'Anónimo'),
+                        actividad.get_accion_display()[:15],
+                        actividad.get_recurso_display()[:15],
+                        str(actividad.codigo_estado) if actividad.codigo_estado else 'N/A'
+                    ])
+                
+                table = Table(table_data, colWidths=[1.2*inch, 1.8*inch, 1.2*inch, 1.2*inch, 0.8*inch])
+                table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 10),
+                    ('FONTSIZE', (1, 1), (-1, -1), 8),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                    ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                    ('GRID', (0, 0), (-1, -1), 1, colors.black)
+                ]))
+                
+                elements.append(table)
+            else:
+                elements.append(Paragraph("No se encontraron registros con los filtros aplicados.", styles['Normal']))
+            
+            # Generar PDF
+            doc.build(elements)
+            
+            # Obtener datos del buffer
+            buffer.seek(0)
+            return buffer.read()
+            
+        except Exception as e:
+            logger.error(f"Error al exportar PDF: {str(e)}")
+            raise

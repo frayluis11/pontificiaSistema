@@ -1,0 +1,259 @@
+# ===============================================================================
+# GITIGNORE - SISTEMA PONTIFICIA
+# Configuración para Python, Django, Docker y desarrollo general
+# ===============================================================================
+
+# ===============================================================================
+# PYTHON & DJANGO
+# ===============================================================================
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+**/venv/
+
+# Django stuff
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+
+# Django migrations (uncomment if you want to ignore)
+# */migrations/*.py
+# !*/migrations/__init__.py
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# PyCharm
+.idea/
+
+# VSCode
+.vscode/
+*.code-workspace
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# PEP 582
+__pypackages__/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# ===============================================================================
+# DOCKER
+# ===============================================================================
+
+# Docker volumes
+**/*_data/
+docker-data/
+
+# Docker compose override files
+docker-compose.override.yml
+docker-compose.local.yml
+
+# ===============================================================================
+# MYSQL & DATABASES
+# ===============================================================================
+
+# MySQL data directories
+mysql_data/
+mysql_auth_data/
+mysql_users_data/
+mysql_asistencia_data/
+mysql_documentos_data/
+mysql_pagos_data/
+mysql_auditoria_data/
+mysql_reportes_data/
+
+# Database dumps
+*.sql
+*.dump
+
+# ===============================================================================
+# LOGS
+# ===============================================================================
+
+# Log files
+*.log
+logs/
+**/*.log
+
+# ===============================================================================
+# CONFIGURATION FILES
+# ===============================================================================
+
+# Environment files (keep .env.example but ignore actual .env files)
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Local configuration overrides
+local_settings.py
+**/local_settings.py
+
+# ===============================================================================
+# SISTEMA ESPECÍFICO
+# ===============================================================================
+
+# Archivos temporales del sistema
+temp/
+tmp/
+*.tmp
+
+# Uploads y archivos de usuario
+uploads/
+user_files/
+
+# Certificados y claves
+*.pem
+*.key
+*.crt
+*.p12
+
+# Backups
+backups/
+*.backup
+
+# Cache directories
+.cache/
+cache/
+
+# ===============================================================================
+# OS ESPECÍFICO
+# ===============================================================================
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+
+# Linux
+*~
+.nfs*
+
+# ===============================================================================
+# DESARROLLO
+# ===============================================================================
+
+# Archivos de prueba
+test_*.py
+*_test.py
+test_data/
+
+# Documentación generada
+docs/_build/
+docs/build/
+
+# Node modules (si se usa para frontend tools)
+node_modules/
+
+# Archivos de configuración local del editor
+*.swp
+*.swo
+*~
+
+# ===============================================================================
+# SEGURIDAD
+# ===============================================================================
+
+# No versionar credenciales ni secretos
+secrets/
+*.secret
+credentials.json
+
+# Archivos con datos sensibles
+*password*
+*secret*
+*token*
+*key*

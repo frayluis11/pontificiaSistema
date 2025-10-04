@@ -81,22 +81,34 @@ TEMPLATES = [
 WSGI_APPLICATION = 'auditoria_service.wsgi.application'
 
 # ========== DATABASE CONFIGURATION ==========
-# MySQL - Puerto 3313 para auditoría
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.getenv('DB_NAME', 'auditoria_db'),
-        'USER': os.getenv('DB_USER', 'auditoria_user'),
-        'PASSWORD': os.getenv('DB_PASSWORD', 'auditoria_password'),
-        'HOST': os.getenv('DB_HOST', 'localhost'),
-        'PORT': os.getenv('DB_PORT', '3313'),
-        'OPTIONS': {
-            'charset': 'utf8mb4',
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-            'isolation_level': 'read committed',
-        },
+# Usar SQLite para desarrollo local, MySQL para producción
+DB_ENGINE = os.getenv('DB_ENGINE', 'sqlite')
+
+if DB_ENGINE == 'mysql':
+    # MySQL - Puerto 3313 para auditoría
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': os.getenv('DB_NAME', 'auditoria_db'),
+            'USER': os.getenv('DB_USER', 'auditoria_user'),
+            'PASSWORD': os.getenv('DB_PASSWORD', 'auditoria_password'),
+            'HOST': os.getenv('DB_HOST', 'localhost'),
+            'PORT': os.getenv('DB_PORT', '3313'),
+            'OPTIONS': {
+                'charset': 'utf8mb4',
+                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+                'isolation_level': 'read committed',
+            },
+        }
     }
-}
+else:
+    # SQLite para desarrollo local
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 # ========== REST FRAMEWORK CONFIGURATION ==========
 REST_FRAMEWORK = {
