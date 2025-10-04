@@ -1,3 +1,6 @@
+﻿import pymysql
+pymysql.install_as_MySQLdb()
+
 """
 Django settings for reportes_service project.
 
@@ -74,11 +77,11 @@ WSGI_APPLICATION = 'reportes_service.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': config('DB_NAME', default='reportes_db'),
-        'USER': config('DB_USER', default='root'),
-        'PASSWORD': config('DB_PASSWORD', default='root'),
-        'HOST': config('DB_HOST', default='localhost'),
-        'PORT': config('DB_PORT', default='3312'),
+        'NAME': os.environ.get('DB_NAME', 'reportes_db'),
+        'USER': os.environ.get('DB_USER', 'root'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', 'root'),
+        'HOST': os.environ.get('DB_HOST', 'localhost'),
+        'PORT': os.environ.get('DB_PORT', '3312'),
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
             'charset': 'utf8mb4',
@@ -229,3 +232,4 @@ REPORTES_CONFIG = {
 # Crear directorios si no existen
 os.makedirs(REPORTES_CONFIG['TEMP_DIR'], exist_ok=True)
 os.makedirs(REPORTES_CONFIG['REPORTS_DIR'], exist_ok=True)
+

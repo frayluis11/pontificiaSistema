@@ -1,4 +1,4 @@
-# Documentación de Testing - Sistema Pontificia
+ # Documentación de Testing - Sistema Pontificia
 
 ## 📋 Resumen Ejecutivo
 

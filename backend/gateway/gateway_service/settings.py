@@ -1,3 +1,6 @@
+﻿import pymysql
+pymysql.install_as_MySQLdb()
+
 """
 Django settings for gateway_service project.
 API Gateway - Sistema Pontificia
@@ -83,8 +86,16 @@ WSGI_APPLICATION = 'gateway_service.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': os.environ.get('DB_NAME', 'gateway_db'),
+        'USER': os.environ.get('DB_USER', 'root'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', 'root'),
+        'HOST': os.environ.get('DB_HOST', 'localhost'),
+        'PORT': os.environ.get('DB_PORT', '3313'),
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+        },
     }
 }
 
@@ -390,3 +401,4 @@ RATE_LIMIT_REQUESTS_PER_HOUR = int(os.environ.get('RATE_LIMIT_REQUESTS_PER_HOUR'
 
 # JWT validation settings
 JWT_VALIDATION_ENABLED = os.environ.get('JWT_VALIDATION_ENABLED', 'False').lower() == 'true'
+

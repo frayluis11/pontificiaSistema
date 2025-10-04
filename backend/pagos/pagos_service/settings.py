@@ -1,3 +1,6 @@
+﻿import pymysql
+pymysql.install_as_MySQLdb()
+
 """
 Configuración de Django para el microservicio de pagos
 
@@ -77,29 +80,21 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'pagos_service.wsgi.application'
 
-# Database configuration - SQLite temporal para desarrollo
+# Database configuration using environment variables
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': os.environ.get('DB_NAME', 'pagos_db'),
+        'USER': os.environ.get('DB_USER', 'root'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', 'root'),
+        'HOST': os.environ.get('DB_HOST', 'localhost'),
+        'PORT': os.environ.get('DB_PORT', '3311'),
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+        },
     }
 }
-
-# MySQL configuration (comentado temporalmente)
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': config('DB_NAME', default='pagos_db'),
-#         'USER': config('DB_USER', default='root'),
-#         'PASSWORD': config('DB_PASSWORD', default=''),
-#         'HOST': config('DB_HOST', default='localhost'),
-#         'PORT': config('DB_PORT', default='3311'),
-#         'OPTIONS': {
-#             'charset': 'utf8mb4',
-#             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-#         },
-#     }
-# }
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -228,3 +223,4 @@ PAGOS_CONFIG = {
     'FORMATO_NUMERO_BOLETA': 'BOL-{year}-{month:02d}-{numero:06d}',
     'ARCHIVO_PDF_TEMPLATE': 'boleta_template.html',
 }
+

@@ -20,98 +20,41 @@ class DocumentoAdmin(admin.ModelAdmin):
     """
     
     list_display = [
-        'codigo_documento', 'titulo', 'tipo', 'estado', 'autor_id',
-        'version_actual', 'publico', 'confidencial', 'fecha_creacion',
-        'descargas', 'visualizaciones', 'activo'
+        'titulo', 'tipo', 'estado', 'autor', 'created_at', 'updated_at'
     ]
     
     list_filter = [
-        'tipo', 'estado', 'publico', 'confidencial', 'requiere_aprobacion',
-        'fecha_creacion', 'fecha_vigencia', 'fecha_vencimiento', 'activo'
+        'tipo', 'estado', 'created_at', 'updated_at'
     ]
     
     search_fields = [
-        'codigo_documento', 'titulo', 'descripcion', 'autor_id',
-        'categoria', 'palabras_clave'
+        'titulo', 'autor__username', 'autor__first_name', 'autor__last_name'
     ]
     
     readonly_fields = [
-        'id', 'codigo_documento', 'version_actual', 'tamano_archivo',
-        'tipo_mime', 'descargas', 'visualizaciones', 'fecha_creacion',
-        'fecha_actualizacion', 'hash_archivo_display'
+        'created_at', 'updated_at'
     ]
     
     fieldsets = (
         ('Información Básica', {
             'fields': (
-                'titulo', 'descripcion', 'tipo', 'autor_id', 'estado'
+                'titulo', 'tipo', 'autor', 'estado'
             )
         }),
         ('Archivo', {
             'fields': (
-                'archivo', 'tamano_archivo', 'tipo_mime'
-            )
-        }),
-        ('Metadatos', {
-            'fields': (
-                'codigo_documento', 'version_actual', 'categoria',
-                'palabras_clave'
-            )
-        }),
-        ('Control de Acceso', {
-            'fields': (
-                'publico', 'confidencial', 'requiere_aprobacion'
-            )
-        }),
-        ('Fechas', {
-            'fields': (
-                'fecha_vigencia', 'fecha_vencimiento', 'fecha_aprobacion'
-            )
-        }),
-        ('Aprobación', {
-            'fields': (
-                'aprobado_por', 'fecha_aprobacion'
-            )
-        }),
-        ('Estadísticas', {
-            'fields': (
-                'descargas', 'visualizaciones'
+                'archivo',
             )
         }),
         ('Sistema', {
             'fields': (
-                'id', 'fecha_creacion', 'fecha_actualizacion', 'activo'
+                'created_at', 'updated_at'
             ),
             'classes': ('collapse',)
         })
     )
     
-    actions = ['activar_documentos', 'desactivar_documentos', 'marcar_publico']
-    
-    def hash_archivo_display(self, obj):
-        """Muestra un hash corto del archivo"""
-        if hasattr(obj, 'archivo') and obj.archivo:
-            return f"{obj.archivo.name[:50]}..."
-        return "No disponible"
-    hash_archivo_display.short_description = "Archivo"
-    
-    def activar_documentos(self, request, queryset):
-        """Activa documentos seleccionados"""
-        count = queryset.update(activo=True)
-        self.message_user(request, f"{count} documentos activados.")
-    activar_documentos.short_description = "Activar documentos seleccionados"
-    
-    def desactivar_documentos(self, request, queryset):
-        """Desactiva documentos seleccionados"""
-        count = queryset.update(activo=False)
-        self.message_user(request, f"{count} documentos desactivados.")
-    desactivar_documentos.short_description = "Desactivar documentos seleccionados"
-    
-    def marcar_publico(self, request, queryset):
-        """Marca documentos como públicos"""
-        count = queryset.update(publico=True)
-        self.message_user(request, f"{count} documentos marcados como públicos.")
-    marcar_publico.short_description = "Marcar como públicos"
+    # No definimos acciones personalizadas para mantener simplicidad
 
 
 class VersionDocumentoInline(admin.TabularInline):
@@ -120,8 +63,8 @@ class VersionDocumentoInline(admin.TabularInline):
     """
     model = VersionDocumento
     extra = 0
-    readonly_fields = ['numero_version', 'vigente', 'tamano_archivo', 'fecha_creacion']
-    fields = ['numero_version', 'vigente', 'creado_por', 'comentarios', 'tamano_archivo', 'fecha_creacion']
+    readonly_fields = ['numero_version', 'created_at']
+    fields = ['numero_version', 'vigente', 'created_by', 'comentarios', 'created_at']
 
 
 @admin.register(VersionDocumento)
@@ -131,22 +74,20 @@ class VersionDocumentoAdmin(admin.ModelAdmin):
     """
     
     list_display = [
-        'documento', 'numero_version', 'vigente', 'creado_por',
-        'fecha_creacion', 'tamano_archivo_mb', 'activo'
+        'documento', 'numero_version', 'vigente', 'created_by',
+        'created_at'
     ]
     
     list_filter = [
-        'vigente', 'fecha_creacion', 'activo'
+        'vigente', 'created_at'
     ]
     
     search_fields = [
-        'documento__titulo', 'documento__codigo_documento',
-        'creado_por', 'comentarios'
+        'documento__titulo', 'created_by__username', 'comentarios'
     ]
     
     readonly_fields = [
-        'id', 'numero_version', 'tamano_archivo', 'tipo_mime',
-        'hash_archivo', 'fecha_creacion', 'fecha_actualizacion'
+        'numero_version', 'created_at'
     ]
     
     fieldsets = (
@@ -157,28 +98,23 @@ class VersionDocumentoAdmin(admin.ModelAdmin):
         }),
         ('Archivo', {
             'fields': (
-                'archivo', 'tamano_archivo', 'tipo_mime', 'hash_archivo'
+                'archivo',
             )
         }),
         ('Metadatos', {
             'fields': (
-                'creado_por', 'comentarios'
+                'created_by', 'comentarios'
             )
         }),
         ('Sistema', {
             'fields': (
-                'id', 'fecha_creacion', 'fecha_actualizacion', 'activo'
+                'created_at',
             ),
             'classes': ('collapse',)
         })
     )
     
-    def tamano_archivo_mb(self, obj):
-        """Muestra el tamaño en MB"""
-        if obj.tamano_archivo:
-            return f"{obj.tamano_archivo / (1024*1024):.2f} MB"
-        return "0 MB"
-    tamano_archivo_mb.short_description = "Tamaño (MB)"
+    # Métodos auxiliares removidos para simplicidad
 
 
 @admin.register(SolicitudDocumento)
@@ -188,41 +124,37 @@ class SolicitudDocumentoAdmin(admin.ModelAdmin):
     """
     
     list_display = [
-        'numero_seguimiento', 'titulo', 'tipo', 'estado', 'prioridad',
-        'solicitante_id', 'asignado_a', 'fecha_solicitud', 'fecha_limite',
-        'esta_vencida_display', 'activo'
+        'numero_seguimiento', 'tipo', 'estado', 
+        'solicitante', 'fecha_solicitud'
     ]
     
     list_filter = [
-        'tipo', 'estado', 'prioridad', 'fecha_solicitud',
-        'fecha_limite', 'activo'
+        'tipo', 'estado', 'fecha_solicitud'
     ]
     
     search_fields = [
-        'numero_seguimiento', 'titulo', 'descripcion',
-        'solicitante_id', 'asignado_a'
+        'numero_seguimiento', 'descripcion',
+        'solicitante__username'
     ]
     
     readonly_fields = [
-        'id', 'numero_seguimiento', 'fecha_solicitud', 'fecha_respuesta',
-        'fecha_asignacion', 'fecha_creacion', 'fecha_actualizacion',
-        'tiempo_transcurrido_display'
+        'numero_seguimiento', 'fecha_solicitud', 'fecha_respuesta'
     ]
     
     fieldsets = (
         ('Información Básica', {
             'fields': (
-                'numero_seguimiento', 'titulo', 'descripcion', 'justificacion'
+                'numero_seguimiento', 'descripcion'
             )
         }),
         ('Clasificación', {
             'fields': (
-                'tipo', 'estado', 'prioridad'
+                'tipo', 'estado'
             )
         }),
         ('Asignación', {
             'fields': (
-                'solicitante_id', 'asignado_a', 'fecha_asignacion'
+                'solicitante',
             )
         }),
         ('Documento Relacionado', {
@@ -232,67 +164,17 @@ class SolicitudDocumentoAdmin(admin.ModelAdmin):
         }),
         ('Fechas', {
             'fields': (
-                'fecha_solicitud', 'fecha_limite', 'fecha_respuesta'
+                'fecha_solicitud', 'fecha_respuesta'
             )
         }),
         ('Respuesta', {
             'fields': (
-                'respuesta', 'respondido_por'
+                'respondido_por',
             )
-        }),
-        ('Archivos', {
-            'fields': (
-                'archivo_adjunto',
-            )
-        }),
-        ('Sistema', {
-            'fields': (
-                'id', 'fecha_creacion', 'fecha_actualizacion', 'activo'
-            ),
-            'classes': ('collapse',)
         })
     )
     
-    actions = ['asignar_a_mi', 'marcar_en_proceso', 'marcar_completada']
-    
-    def esta_vencida_display(self, obj):
-        """Muestra si la solicitud está vencida"""
-        if obj.esta_vencida():
-            return format_html('<span style="color: red;">Vencida</span>')
-        return format_html('<span style="color: green;">Vigente</span>')
-    esta_vencida_display.short_description = "Estado Fecha"
-    
-    def tiempo_transcurrido_display(self, obj):
-        """Muestra el tiempo transcurrido"""
-        horas = obj.tiempo_transcurrido()
-        if horas < 24:
-            return f"{horas} horas"
-        else:
-            dias = horas // 24
-            return f"{dias} días"
-    tiempo_transcurrido_display.short_description = "Tiempo Transcurrido"
-    
-    def asignar_a_mi(self, request, queryset):
-        """Asigna solicitudes al usuario actual"""
-        user_id = str(request.user.id) if request.user.id else 'admin'
-        count = 0
-        for solicitud in queryset:
-            solicitud.asignar(user_id)
-            count += 1
-        self.message_user(request, f"{count} solicitudes asignadas a usted.")
-    asignar_a_mi.short_description = "Asignar a mí"
-    
-    def marcar_en_proceso(self, request, queryset):
-        """Marca solicitudes como en proceso"""
-        count = queryset.update(estado='EN_PROCESO')
-        self.message_user(request, f"{count} solicitudes marcadas en proceso.")
-    marcar_en_proceso.short_description = "Marcar en proceso"
-    
-    def marcar_completada(self, request, queryset):
-        """Marca solicitudes como completadas"""
-        count = queryset.update(estado='COMPLETADA')
-        self.message_user(request, f"{count} solicitudes marcadas como completadas.")
-    marcar_completada.short_description = "Marcar completadas"
+    # Métodos personalizados removidos para simplicidad
 
 
 @admin.register(FlujoDocumento)
@@ -302,38 +184,25 @@ class FlujoDocumentoAdmin(admin.ModelAdmin):
     """
     
     list_display = [
-        'documento', 'paso', 'usuario_id', 'fecha_accion',
-        'estado_anterior', 'estado_nuevo', 'activo'
+        'documento', 'paso', 'usuario', 'fecha'
     ]
     
     list_filter = [
-        'paso', 'estado_anterior', 'estado_nuevo', 'fecha_accion', 'activo'
+        'paso', 'fecha'
     ]
     
     search_fields = [
-        'documento__titulo', 'documento__codigo_documento',
-        'usuario_id', 'detalle'
+        'documento__titulo', 'usuario__username', 'detalle'
     ]
     
     readonly_fields = [
-        'id', 'fecha_accion', 'fecha_creacion', 'fecha_actualizacion',
-        'duracion_segundos'
+        'fecha'
     ]
     
     fieldsets = (
         ('Información Básica', {
             'fields': (
-                'documento', 'paso', 'usuario_id', 'detalle'
-            )
-        }),
-        ('Estados', {
-            'fields': (
-                'estado_anterior', 'estado_nuevo'
-            )
-        }),
-        ('Metadatos', {
-            'fields': (
-                'fecha_accion', 'duracion_segundos', 'ip_address', 'user_agent'
+                'documento', 'paso', 'usuario', 'detalle'
             )
         }),
         ('Datos Adicionales', {
@@ -343,7 +212,7 @@ class FlujoDocumentoAdmin(admin.ModelAdmin):
         }),
         ('Sistema', {
             'fields': (
-                'id', 'fecha_creacion', 'fecha_actualizacion', 'activo'
+                'fecha',
             ),
             'classes': ('collapse',)
         })

@@ -1,3 +1,6 @@
+﻿import pymysql
+pymysql.install_as_MySQLdb()
+
 """
 Django settings for auth_service project - Microservicio de Autenticación
 Sistema Pontificia - AUTH SERVICE (Puerto 3001, MySQL 3307)
@@ -80,8 +83,8 @@ DATABASES = {
         'NAME': 'auth_db',
         'USER': 'auth_user',
         'PASSWORD': 'auth_password_123',
-        'HOST': 'mysql_auth',
-        'PORT': '3306',
+        'HOST': os.environ.get('DB_HOST', 'mysql_auth'),  # Use localhost for local dev
+        'PORT': os.environ.get('DB_PORT', '3306'),        # Use 3307 for local dev
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
             'charset': 'utf8mb4',
@@ -225,3 +228,4 @@ LOGGING = {
         'level': 'INFO',
     },
 }
+

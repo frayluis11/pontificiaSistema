@@ -497,12 +497,12 @@ class BusquedaSerializer(serializers.Serializer):
     
     q = serializers.CharField(max_length=200, help_text="Término de búsqueda")
     tipo = serializers.ChoiceField(
-        choices=TipoDocumento.choices,
+        choices=TipoDocumento.CHOICES,
         required=False,
         help_text="Filtrar por tipo de documento"
     )
     estado = serializers.ChoiceField(
-        choices=EstadoDocumento.choices,
+        choices=EstadoDocumento.CHOICES,
         required=False,
         help_text="Filtrar por estado"
     )
@@ -556,19 +556,19 @@ class OpcionesSerializer(serializers.Serializer):
     
     def get_tipos_documento(self, obj):
         """Tipos de documento disponibles"""
-        return [{'value': choice[0], 'label': choice[1]} for choice in TipoDocumento.choices]
+        return [{'value': choice[0], 'label': choice[1]} for choice in TipoDocumento.CHOICES]
     
     def get_estados_documento(self, obj):
         """Estados de documento disponibles"""
-        return [{'value': choice[0], 'label': choice[1]} for choice in EstadoDocumento.choices]
+        return [{'value': choice[0], 'label': choice[1]} for choice in EstadoDocumento.CHOICES]
     
     def get_tipos_solicitud(self, obj):
         """Tipos de solicitud disponibles"""
-        return [{'value': choice[0], 'label': choice[1]} for choice in TipoSolicitud.choices]
+        return [{'value': choice[0], 'label': choice[1]} for choice in TipoSolicitud.CHOICES]
     
     def get_estados_solicitud(self, obj):
         """Estados de solicitud disponibles"""
-        return [{'value': choice[0], 'label': choice[1]} for choice in EstadoSolicitud.choices]
+        return [{'value': choice[0], 'label': choice[1]} for choice in EstadoSolicitud.CHOICES]
     
     def get_prioridades(self, obj):
         """Prioridades disponibles"""

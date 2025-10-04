@@ -1,3 +1,6 @@
+﻿import pymysql
+pymysql.install_as_MySQLdb()
+
 """
 Django settings for documentos_service project.
 
@@ -109,32 +112,24 @@ TEMPLATES = [
 # DATABASE
 # ==============================================================================
 
-# TEMPORAL: Usando SQLite para pruebas
+# Database configuration using environment variables
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db_temp.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': os.environ.get('DB_NAME', 'documentos_db'),
+        'USER': os.environ.get('DB_USER', 'root'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', 'root'),
+        'HOST': os.environ.get('DB_HOST', 'localhost'),
+        'PORT': os.environ.get('DB_PORT', '3310'),
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+            'sql_mode': 'STRICT_TRANS_TABLES',
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+        },
+        'CONN_MAX_AGE': 60,
+        'CONN_HEALTH_CHECKS': True,
     }
 }
-
-# Configuración MySQL original (comentada temporalmente)
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': config('DB_NAME', default='documentos_db'),
-#         'USER': config('DB_USER', default='documentos_user'),
-#         'PASSWORD': config('DB_PASSWORD', default='DocumentosPass2024!'),
-#         'HOST': config('DB_HOST', default='localhost'),
-#         'PORT': config('DB_PORT', default='3310', cast=int),
-#         'OPTIONS': {
-#             'charset': 'utf8mb4',
-#             'sql_mode': 'STRICT_TRANS_TABLES',
-#             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-#         },
-#         'CONN_MAX_AGE': 60,
-#         'CONN_HEALTH_CHECKS': True,
-#     }
-# }
 
 
 # ==============================================================================
@@ -345,3 +340,4 @@ NOTIFICACIONES_ENABLED = config('NOTIFICACIONES_ENABLED', default=True, cast=boo
 os.makedirs(BASE_DIR / 'logs', exist_ok=True)
 os.makedirs(BASE_DIR / 'static', exist_ok=True)
 os.makedirs(BASE_DIR / 'media', exist_ok=True)
+
