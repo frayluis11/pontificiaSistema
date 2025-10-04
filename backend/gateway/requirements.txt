@@ -1,40 +1,55 @@
-# Django Framework
+# API Gateway - Sistema Pontificia
+# Requirements for Docker
+
+# Django Core
 Django==4.2.7
 djangorestframework==3.14.0
+drf-spectacular==0.27.0
 
-# Authentication & JWT
+# Authentication & Security
 djangorestframework-simplejwt==5.3.0
+PyJWT==2.8.0
 
-# Database
-mysqlclient==2.2.0
+# CORS & Middleware
+django-cors-headers==4.3.1
+django-ratelimit==4.1.0
+
+# Database & Cache
+redis==5.0.1
+psycopg2-binary==2.9.9
+django-redis==5.4.0
+
+# HTTP Clients & Requests
+requests==2.31.0
+httpx==0.25.2
+
+# Environment & Configuration
+python-decouple==3.8
+python-dotenv==1.0.0
+
+# Utilities
+python-dateutil==2.8.2
+pytz==2023.3.post1
+Pillow==10.1.0
 
 # Task Queue
 celery==5.3.4
-redis==5.0.1
 
-# API Documentation
-drf-spectacular==0.26.5
+# Monitoring & Logging
+structlog==23.2.0
 
-# Environment Variables
-python-decouple==3.8
-
-# CORS Headers
-django-cors-headers==4.3.1
-
-# Additional utilities
-Pillow==10.1.0  # For image handling
-python-dateutil==2.8.2  # For date utilities
-pytz==2023.3  # Timezone support
+# JSON Schema validation
+jsonschema==4.20.0
 
 # Development dependencies
-flake8==6.1.0  # Code linting
-black==23.9.1  # Code formatting
-isort==5.12.0  # Import sorting
+flake8==6.1.0
+black==23.9.1
+isort==5.12.0
 
 # Testing
 pytest==7.4.3
 pytest-django==4.7.0
-factory-boy==3.3.0  # Test data generation
+factory-boy==3.3.0
 
 # Production server
 gunicorn==21.2.0

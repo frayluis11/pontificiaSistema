@@ -315,3 +315,248 @@ class UsuarioFactory:
             errores['estado'] = ['Estado inválido']
         
         return errores
+    
+    # ========== MÉTODOS PARA SEEDS ==========
+    
+    @staticmethod
+    def crear_usuario_admin() -> Usuario:
+        """Crea un usuario administrador con datos de ejemplo"""
+        import random
+        
+        nombres_masculinos = [
+            "Carlos Alberto", "José Miguel", "Luis Fernando", "Diego Andrés", "Roberto Carlos",
+            "Manuel Alejandro", "Francisco Javier", "Sergio Andrés", "Eduardo José", "Raúl Enrique"
+        ]
+        
+        nombres_femeninos = [
+            "María Elena", "Ana Cristina", "Patricia Isabel", "Carmen Lucía", "Rosa María",
+            "Esperanza Victoria", "Gloria Patricia", "Claudia Marcela", "Sandra Milena", "Luz Marina"
+        ]
+        
+        apellidos = [
+            "García López", "Rodríguez Martínez", "Hernández Sánchez", "López Gómez", "González Torres",
+            "Martínez Jiménez", "Pérez Ruiz", "Sánchez Moreno", "Ramírez Castro", "Cruz Vargas",
+            "Flores Herrera", "Torres Mendoza", "Rivera Aguilar", "Morales Vega", "Ortiz Silva"
+        ]
+        
+        es_masculino = random.choice([True, False])
+        nombre = random.choice(nombres_masculinos if es_masculino else nombres_femeninos)
+        apellido = random.choice(apellidos)
+        
+        # Generar DNI único
+        dni = str(random.randint(10000000, 99999999))
+        while UsuarioRepository.existe_dni(dni):
+            dni = str(random.randint(10000000, 99999999))
+        
+        # Generar correo único
+        import unicodedata
+        import re
+        
+        # Normalizar nombres (remover acentos y caracteres especiales)
+        def normalizar_nombre(texto):
+            # Remover acentos
+            texto = unicodedata.normalize('NFD', texto)
+            texto = ''.join(c for c in texto if unicodedata.category(c) != 'Mn')
+            # Remover caracteres especiales y espacios
+            texto = re.sub(r'[^a-zA-Z]', '', texto)
+            return texto.lower()
+        
+        nombre_email = normalizar_nombre(nombre.split()[0])
+        apellido_email = normalizar_nombre(apellido.split()[0])
+        correo = f"{nombre_email}.{apellido_email}@pontificia.edu.co"
+        contador = 1
+        while UsuarioRepository.existe_correo(correo):
+            correo = f"{nombre_email}.{apellido_email}{contador}@pontificia.edu.co"
+            contador += 1
+        
+        return UsuarioFactory.crear_admin(
+            dni=dni,
+            nombre=nombre,
+            apellido=apellido,
+            correo=correo,
+            password="TempAdmin2024!"
+        )
+    
+    @staticmethod
+    def crear_usuario_docente() -> Usuario:
+        """Crea un usuario docente con datos de ejemplo"""
+        import random
+        
+        nombres_masculinos = [
+            "Andrés Felipe", "Jhon Alexander", "William Andrés", "Oscar Iván", "Jorge Enrique",
+            "Héctor Manuel", "Fabián Andrés", "Nelson Eduardo", "Guillermo José", "Mauricio Alberto"
+        ]
+        
+        nombres_femeninos = [
+            "Mónica Andrea", "Liliana Patricia", "Diana Carolina", "Adriana María", "Beatriz Elena",
+            "Margarita Isabel", "Teresa Cristina", "Pilar Esperanza", "Cecilia Rosa", "Amparo Victoria"
+        ]
+        
+        apellidos = [
+            "Herrera Morales", "Jiménez Pérez", "Moreno García", "Ruiz Martínez", "Gómez López",
+            "Castro Hernández", "Vargas González", "Aguilar Sánchez", "Mendoza Ramírez", "Silva Torres",
+            "Vega Cruz", "Herrera Flores", "Gutiérrez Rivera", "Díaz Morales", "Rojas Ortiz"
+        ]
+        
+        es_masculino = random.choice([True, False])
+        nombre = random.choice(nombres_masculinos if es_masculino else nombres_femeninos)
+        apellido = random.choice(apellidos)
+        
+        # Generar DNI único
+        dni = str(random.randint(20000000, 89999999))
+        while UsuarioRepository.existe_dni(dni):
+            dni = str(random.randint(20000000, 89999999))
+        
+        # Generar correo único
+        nombre_email = nombre.split()[0].lower()
+        apellido_email = apellido.split()[0].lower()
+        correo = f"prof.{nombre_email}.{apellido_email}@pontificia.edu.co"
+        contador = 1
+        while UsuarioRepository.existe_correo(correo):
+            correo = f"prof.{nombre_email}.{apellido_email}{contador}@pontificia.edu.co"
+            contador += 1
+        
+        return UsuarioFactory.crear_docente(
+            dni=dni,
+            nombre=nombre,
+            apellido=apellido,
+            correo=correo,
+            password="TempProf2024!"
+        )
+    
+    @staticmethod
+    def crear_usuario_rrhh() -> Usuario:
+        """Crea un usuario de RRHH con datos de ejemplo"""
+        import random
+        
+        nombres_masculinos = [
+            "Álvaro José", "Ricardo Manuel", "Fernando Luis", "Germán Andrés", "Jaime Alberto"
+        ]
+        
+        nombres_femeninos = [
+            "Yolanda María", "Esperanza del Carmen", "Nubia Patricia", "Olga Lucía", "Martha Isabel",
+            "Blanca Rosa", "Stella Maris", "Consuelo Victoria", "Mercedes Elena", "Alba Nery"
+        ]
+        
+        apellidos = [
+            "Quintero Mejía", "Salazar Ochoa", "Restrepo Villa", "Montoya Arias", "Valencia Cardona",
+            "Ospina Múnera", "Giraldo Henao", "Bedoya Zuluaga", "Correa Hoyos", "Londoño Betancur"
+        ]
+        
+        es_masculino = random.choice([True, False])
+        nombre = random.choice(nombres_masculinos if es_masculino else nombres_femeninos)
+        apellido = random.choice(apellidos)
+        
+        # Generar DNI único
+        dni = str(random.randint(25000000, 85999999))
+        while UsuarioRepository.existe_dni(dni):
+            dni = str(random.randint(25000000, 85999999))
+        
+        # Generar correo único
+        nombre_email = nombre.split()[0].lower()
+        apellido_email = apellido.split()[0].lower()
+        correo = f"rrhh.{nombre_email}.{apellido_email}@pontificia.edu.co"
+        contador = 1
+        while UsuarioRepository.existe_correo(correo):
+            correo = f"rrhh.{nombre_email}.{apellido_email}{contador}@pontificia.edu.co"
+            contador += 1
+        
+        return UsuarioFactory.crear_rrhh(
+            dni=dni,
+            nombre=nombre,
+            apellido=apellido,
+            correo=correo,
+            password="TempRRHH2024!"
+        )
+    
+    @staticmethod
+    def crear_usuario_contabilidad() -> Usuario:
+        """Crea un usuario de contabilidad con datos de ejemplo"""
+        import random
+        
+        nombres_masculinos = [
+            "Edgar Arturo", "Rubén Darío", "Iván Camilo", "Gonzalo Ernesto", "Armando José"
+        ]
+        
+        nombres_femeninos = [
+            "Gladys Amparo", "Miriam Esperanza", "Fabiola Patricia", "Leticia María", "Norma Constanza",
+            "Graciela Isabel", "Dora Inés", "Clemencia Rosa", "Magnolia Victoria", "Edilma Teresa"
+        ]
+        
+        apellidos = [
+            "Patiño Ramírez", "Cárdenas Rueda", "Velásquez Franco", "Rincón Vargas", "Duarte Peña",
+            "Ayala Pinzón", "Castellanos Rojas", "Guerrero Suárez", "Parra Delgado", "Molina Campos"
+        ]
+        
+        es_masculino = random.choice([True, False])
+        nombre = random.choice(nombres_masculinos if es_masculino else nombres_femeninos)
+        apellido = random.choice(apellidos)
+        
+        # Generar DNI único
+        dni = str(random.randint(30000000, 75999999))
+        while UsuarioRepository.existe_dni(dni):
+            dni = str(random.randint(30000000, 75999999))
+        
+        # Generar correo único
+        nombre_email = nombre.split()[0].lower()
+        apellido_email = apellido.split()[0].lower()
+        correo = f"conta.{nombre_email}.{apellido_email}@pontificia.edu.co"
+        contador = 1
+        while UsuarioRepository.existe_correo(correo):
+            correo = f"conta.{nombre_email}.{apellido_email}{contador}@pontificia.edu.co"
+            contador += 1
+        
+        return UsuarioFactory.crear_contabilidad(
+            dni=dni,
+            nombre=nombre,
+            apellido=apellido,
+            correo=correo,
+            password="TempConta2024!"
+        )
+    
+    @staticmethod
+    def crear_usuario_estudiante() -> Usuario:
+        """Crea un usuario estudiante con datos de ejemplo"""
+        import random
+        
+        nombres_masculinos = [
+            "Juan Sebastián", "Mateo Alejandro", "Nicolás David", "Samuel Andrés", "Daniel Santiago",
+            "Alejandro José", "Sebastián David", "Cristian Camilo", "Jesús David", "Kevin Andrés"
+        ]
+        
+        nombres_femeninos = [
+            "Valentina Andrea", "Sofía Alejandra", "Isabella María", "Camila Fernanda", "Mariana Sofía",
+            "Daniela Carolina", "Alejandra Paola", "Andrea Valentina", "Gabriela Alejandra", "Natalia Andrea"
+        ]
+        
+        apellidos = [
+            "Ramírez Gómez", "Castro López", "Morales Pérez", "Vargas Martínez", "Silva García",
+            "Herrera González", "Mendoza Rodríguez", "Aguilar Hernández", "Torres Sánchez", "Vega Jiménez",
+            "Cruz Moreno", "Flores Ruiz", "Rivera Castro", "Ortiz Vargas", "Gutiérrez Silva"
+        ]
+        
+        es_masculino = random.choice([True, False])
+        nombre = random.choice(nombres_masculinos if es_masculino else nombres_femeninos)
+        apellido = random.choice(apellidos)
+        
+        # Generar DNI único (rango para estudiantes más jóvenes)
+        dni = str(random.randint(1000000000, 1999999999))
+        while UsuarioRepository.existe_dni(dni):
+            dni = str(random.randint(1000000000, 1999999999))
+        
+        # Generar correo único
+        nombre_email = nombre.split()[0].lower()
+        apellido_email = apellido.split()[0].lower()
+        correo = f"{nombre_email}.{apellido_email}@estudiantes.pontificia.edu.co"
+        contador = 1
+        while UsuarioRepository.existe_correo(correo):
+            correo = f"{nombre_email}.{apellido_email}{contador}@estudiantes.pontificia.edu.co"
+            contador += 1
+        
+        return UsuarioFactory.crear_estudiante(
+            dni=dni,
+            nombre=nombre,
+            apellido=apellido,
+            correo=correo,
+            password="TempEst2024!"
+        )

@@ -500,3 +500,20 @@ class AuditoriaRepository(BaseRepository):
         ]
         
         return metricas
+    
+    def obtener_actividades_filtradas(self, filtros: Dict = None):
+        """
+        Obtener actividades filtradas para exportación
+        """
+        if not filtros:
+            return self.get_all().order_by('-fecha')
+        
+        return self.buscar_actividades(
+            usuario_id=filtros.get('usuario_id'),
+            accion=filtros.get('accion'),
+            recurso=filtros.get('recurso'),
+            fecha_inicio=filtros.get('fecha_inicio'),
+            fecha_fin=filtros.get('fecha_fin'),
+            nivel_criticidad=filtros.get('nivel_criticidad'),
+            ip_address=filtros.get('ip_address')
+        )

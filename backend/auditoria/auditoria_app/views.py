@@ -23,7 +23,7 @@ from .models import ActividadSistema
 from .serializers import ActividadSistemaSerializer, ActividadSistemaCreateSerializer
 from .services import AuditoriaService
 from .repositories import AuditoriaRepository
-from .middleware.observer import webhook_handler
+from .middleware.observer import webhook_handler, observer
 
 logger = logging.getLogger('audit.views')
 
@@ -438,18 +438,18 @@ def system_info(request):
         # Obtener estadísticas del sistema
         total_logs = ActividadSistema.objects.count()
         logs_hoy = ActividadSistema.objects.filter(
-            fecha_hora__date=datetime.now().date()
+            fecha__date=datetime.now().date()
         ).count()
         
         # Últimas 24 horas
         hace_24h = datetime.now() - timedelta(hours=24)
         logs_24h = ActividadSistema.objects.filter(
-            fecha_hora__gte=hace_24h
+            fecha__gte=hace_24h
         ).count()
         
         # Usuarios únicos en las últimas 24 horas
         usuarios_activos = ActividadSistema.objects.filter(
-            fecha_hora__gte=hace_24h,
+            fecha__gte=hace_24h,
             usuario_id__isnull=False
         ).values('usuario_id').distinct().count()
         
@@ -474,3 +474,121 @@ def system_info(request):
         return Response({
             'error': 'Error al obtener información del sistema'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ========== VISTAS DE WEBHOOK ==========
+
+class WebhookDocumentView(View):
+    """
+    Webhook para recibir notificaciones de cambios en documentos
+    """
+    @method_decorator(csrf_exempt)
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+    
+    def post(self, request):
+        try:
+            data = json.loads(request.body)
+            observer.notify_document_change(
+                action=data.get('action', 'UPDATE'),
+                document_id=data.get('document_id'),
+                user_id=data.get('user_id'),
+                details=data.get('details', {})
+            )
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            logger.error(f"Error en webhook documentos: {str(e)}")
+            return JsonResponse({'error': str(e)}, status=400)
+
+
+class WebhookPaymentView(View):
+    """
+    Webhook para recibir notificaciones de cambios en pagos
+    """
+    @method_decorator(csrf_exempt)
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+    
+    def post(self, request):
+        try:
+            data = json.loads(request.body)
+            observer.notify_payment_change(
+                action=data.get('action', 'UPDATE'),
+                payment_id=data.get('payment_id'),
+                user_id=data.get('user_id'),
+                details=data.get('details', {})
+            )
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            logger.error(f"Error en webhook pagos: {str(e)}")
+            return JsonResponse({'error': str(e)}, status=400)
+
+
+class WebhookUserView(View):
+    """
+    Webhook para recibir notificaciones de cambios en usuarios
+    """
+    @method_decorator(csrf_exempt)
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+    
+    def post(self, request):
+        try:
+            data = json.loads(request.body)
+            observer.notify_user_change(
+                action=data.get('action', 'UPDATE'),
+                user_id=data.get('user_id'),
+                details=data.get('details', {})
+            )
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            logger.error(f"Error en webhook usuarios: {str(e)}")
+            return JsonResponse({'error': str(e)}, status=400)
+
+
+class WebhookAttendanceView(View):
+    """
+    Webhook para recibir notificaciones de cambios en asistencia
+    """
+    @method_decorator(csrf_exempt)
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+    
+    def post(self, request):
+        try:
+            data = json.loads(request.body)
+            observer.notify_attendance_change(
+                action=data.get('action', 'UPDATE'),
+                attendance_id=data.get('attendance_id'),
+                user_id=data.get('user_id'),
+                details=data.get('details', {})
+            )
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            logger.error(f"Error en webhook asistencia: {str(e)}")
+            return JsonResponse({'error': str(e)}, status=400)
+
+
+class WebhookGenericView(View):
+    """
+    Webhook genérico para cualquier tipo de notificación
+    """
+    @method_decorator(csrf_exempt)
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+    
+    def post(self, request):
+        try:
+            data = json.loads(request.body)
+            auditoria_service = AuditoriaService()
+            auditoria_service.registrar_actividad(
+                usuario_id=data.get('user_id'),
+                accion=data.get('action', 'OTHER'),
+                recurso=data.get('resource', 'OTHER'),
+                detalle=data.get('details', {}),
+                **data.get('extra_data', {})
+            )
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            logger.error(f"Error en webhook genérico: {str(e)}")
+            return JsonResponse({'error': str(e)}, status=400)

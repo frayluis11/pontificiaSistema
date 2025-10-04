@@ -18,7 +18,7 @@ pandas==2.1.1
 
 # Utilidades
 python-dotenv==1.0.0
-Pillow==10.0.1
+Pillow==10.1.0
 
 # Desarrollo y testing
 pytest==7.4.2
@@ -41,13 +41,8 @@ drf-spectacular==0.26.5
 # Environment Variables
 python-decouple==3.8
 
-# CORS Headers
-django-cors-headers==4.3.1
-
 # Additional utilities
-Pillow==10.1.0  # For image handling
-python-dateutil==2.8.2  # For date utilities
-pytz==2023.3  # Timezone support
+python-dateutil==2.8.2
 
 # Development dependencies
 flake8==6.1.0  # Code linting

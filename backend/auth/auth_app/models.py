@@ -1,37 +1,31 @@
 """
-Modelos para el microservicio de autenticación
+Modelos del microservicio AUTH - Sistema Pontificia
 """
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
-from django.utils import timezone
 from django.core.validators import RegexValidator
-import uuid
+from django.utils import timezone
+from django.core.exceptions import ValidationError
+import re
 
 
 class UsuarioManager(BaseUserManager):
-    """
-    Manager personalizado para el modelo Usuario
-    """
+    """Manager personalizado para el modelo Usuario"""
     
-    def create_user(self, dni, correo, password=None, **extra_fields):
-        """
-        Crear y guardar un usuario regular
-        """
-        if not dni:
-            raise ValueError('El DNI es obligatorio')
+    def create_user(self, correo, dni, password=None, **extra_fields):
+        """Crear usuario regular"""
         if not correo:
-            raise ValueError('El correo electrónico es obligatorio')
-        
+            raise ValueError('El correo electrónico es requerido')
+            raise ValueError('El DNI es requerido')
+            
         correo = self.normalize_email(correo)
-        user = self.model(dni=dni, correo=correo, **extra_fields)
+        user = self.model(correo=correo, dni=dni, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
         return user
     
-    def create_superuser(self, dni, correo, password=None, **extra_fields):
-        """
-        Crear y guardar un superusuario
-        """
+    def create_superuser(self, correo, dni, password=None, **extra_fields):
+        """Crear superusuario"""
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
         extra_fields.setdefault('rol', Usuario.ROL_ADMIN)
@@ -41,16 +35,17 @@ class UsuarioManager(BaseUserManager):
             raise ValueError('Superuser must have is_staff=True.')
         if extra_fields.get('is_superuser') is not True:
             raise ValueError('Superuser must have is_superuser=True.')
-        
-        return self.create_user(dni, correo, password, **extra_fields)
+            
+        return self.create_user(correo, dni, password, **extra_fields)
 
 
 class Usuario(AbstractBaseUser, PermissionsMixin):
     """
-    Modelo personalizado de Usuario para el sistema de autenticación
+    Modelo Usuario personalizado para el sistema Pontificia
+    Maneja autenticación y autorización de usuarios
     """
     
-    # Opciones de rol
+    # Choices para roles
     ROL_ADMIN = 'ADMIN'
     ROL_DOCENTE = 'DOCENTE'
     ROL_RRHH = 'RRHH'
@@ -65,253 +60,353 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
         (ROL_ESTUDIANTE, 'Estudiante'),
     ]
     
-    # Opciones de estado
+    # Choices para estados
     ESTADO_ACTIVO = 'ACTIVO'
     ESTADO_INACTIVO = 'INACTIVO'
     ESTADO_SUSPENDIDO = 'SUSPENDIDO'
-    ESTADO_BLOQUEADO = 'BLOQUEADO'
+    ESTADO_PENDIENTE = 'PENDIENTE'
     
     ESTADOS_CHOICES = [
         (ESTADO_ACTIVO, 'Activo'),
         (ESTADO_INACTIVO, 'Inactivo'),
         (ESTADO_SUSPENDIDO, 'Suspendido'),
-        (ESTADO_BLOQUEADO, 'Bloqueado'),
+        (ESTADO_PENDIENTE, 'Pendiente Activación'),
     ]
     
-    # Validador para DNI (solo números, 7-10 dígitos)
+    # Validadores
     dni_validator = RegexValidator(
-        regex=r'^\d{7,10}$',
-        message='El DNI debe contener entre 7 y 10 dígitos numéricos'
+        regex=r'^\d{6,12}$',
+        message='DNI debe contener entre 6 y 12 dígitos'
     )
     
-    # Campos del modelo
-    id = models.UUIDField(
-        primary_key=True,
-        default=uuid.uuid4,
-        editable=False,
-        help_text='Identificador único del usuario'
+    telefono_validator = RegexValidator(
+        regex=r'^\+?1?\d{9,15}$',
+        message='Número de teléfono debe tener el formato: +999999999. Máximo 15 dígitos.'
     )
+    
+    # Campos principales
+    id = models.AutoField(primary_key=True)
     
     dni = models.CharField(
-        max_length=10,
+        max_length=12,
         unique=True,
         validators=[dni_validator],
-        help_text='Documento Nacional de Identidad'
+        help_text='Documento de identidad único'
     )
-    
     nombre = models.CharField(
         max_length=100,
-        help_text='Nombre(s) del usuario'
+        help_text='Nombres del usuario'
     )
-    
     apellido = models.CharField(
         max_length=100,
-        help_text='Apellido(s) del usuario'
+        help_text='Apellidos del usuario'
     )
-    
     correo = models.EmailField(
+        max_length=150,
         unique=True,
-        help_text='Correo electrónico único del usuario'
+        help_text='Correo electrónico único'
+    )
+    telefono = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        validators=[telefono_validator],
+        help_text='Número de teléfono'
     )
     
+    # Campos de rol y estado
     rol = models.CharField(
-        max_length=15,
+        max_length=20,
         choices=ROLES_CHOICES,
         default=ROL_ESTUDIANTE,
         help_text='Rol del usuario en el sistema'
     )
-    
     estado = models.CharField(
-        max_length=15,
+        max_length=20,
         choices=ESTADOS_CHOICES,
-        default=ESTADO_ACTIVO,
+        default=ESTADO_PENDIENTE,
         help_text='Estado actual del usuario'
     )
     
-    # Campos de auditoría
+    
+    # Campos de auditoría y control
     fecha_creacion = models.DateTimeField(
-        default=timezone.now,
+        auto_now_add=True,
         help_text='Fecha y hora de creación del usuario'
     )
-    
-    fecha_modificacion = models.DateTimeField(
+    fecha_actualizacion = models.DateTimeField(
         auto_now=True,
-        help_text='Fecha y hora de última modificación'
+        help_text='Fecha y hora de última actualización'
     )
-    
-    fecha_ultimo_acceso = models.DateTimeField(
+    ultimo_login = models.DateTimeField(
         null=True,
         blank=True,
-        help_text='Fecha y hora del último acceso al sistema'
+        help_text='Fecha y hora del último inicio de sesión'
+    )
+    fecha_vencimiento_password = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text='Fecha de vencimiento de la contraseña'
+    )
+    intentos_login_fallidos = models.PositiveSmallIntegerField(
+        default=0,
+        help_text='Número de intentos de login fallidos consecutivos'
+    )
+    fecha_bloqueo = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text='Fecha de bloqueo por intentos fallidos'
     )
     
-    # Campos requeridos por Django
-    is_active = models.BooleanField(
-        default=True,
-        help_text='Indica si el usuario está activo en el sistema'
+    # Campos adicionales opcionales
+    avatar = models.URLField(
+        blank=True,
+        null=True,
+        help_text='URL del avatar del usuario'
+    )
+    departamento = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text='Departamento o área de trabajo'
+    )
+    cargo = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text='Cargo o posición'
     )
     
-    is_staff = models.BooleanField(
-        default=False,
-        help_text='Indica si el usuario puede acceder al panel de administración'
+    # Campos para Django Admin
+    is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=False)
+    is_superuser = models.BooleanField(default=False)
+    
+    # Override inherited fields to avoid conflicts
+    groups = models.ManyToManyField(
+        'auth.Group',
+        verbose_name='groups',
+        blank=True,
+        help_text='The groups this user belongs to.',
+        related_name='usuarios',
+        related_query_name='usuario',
+    )
+    user_permissions = models.ManyToManyField(
+        'auth.Permission',
+        verbose_name='user permissions',
+        blank=True,
+        help_text='Specific permissions for this user.',
+        related_name='usuarios',
+        related_query_name='usuario',
     )
     
-    # Configuración del manager
+    
+    # Manager personalizado
     objects = UsuarioManager()
     
     # Configuración de autenticación
-    USERNAME_FIELD = 'dni'
-    REQUIRED_FIELDS = ['correo', 'nombre', 'apellido']
+    USERNAME_FIELD = 'correo'
+    REQUIRED_FIELDS = ['dni', 'nombre', 'apellido']
     
     class Meta:
-        db_table = 'auth_usuarios'
+        db_table = 'usuarios'
         verbose_name = 'Usuario'
         verbose_name_plural = 'Usuarios'
         ordering = ['-fecha_creacion']
         indexes = [
-            models.Index(fields=['dni']),
             models.Index(fields=['correo']),
+            models.Index(fields=['dni']),
             models.Index(fields=['rol']),
             models.Index(fields=['estado']),
             models.Index(fields=['fecha_creacion']),
         ]
     
     def __str__(self):
-        return f"{self.nombre} {self.apellido} ({self.dni})"
+        return f"{self.nombre} {self.apellido} ({self.correo})"
     
-    def get_full_name(self):
-        """
-        Retorna el nombre completo del usuario
-        """
+    def clean(self):
+        """Validaciones personalizadas"""
+        super().clean()
+        
+        # Validar formato del correo (usando el validador de Django que es más flexible)
+        from django.core.validators import validate_email
+        if self.correo:
+            try:
+                validate_email(self.correo)
+            except ValidationError:
+                raise ValidationError({'correo': 'Formato de correo electrónico inválido'})
+        
+        # Validar DNI
+        if self.dni and not self.dni.isdigit():
+            raise ValidationError({'dni': 'DNI debe contener solo dígitos'})
+        
+        # Validar nombres y apellidos
+        if self.nombre and len(self.nombre.strip()) < 2:
+            raise ValidationError({'nombre': 'El nombre debe tener al menos 2 caracteres'})
+        
+        if self.apellido and len(self.apellido.strip()) < 2:
+            raise ValidationError({'apellido': 'El apellido debe tener al menos 2 caracteres'})
+    
+    def save(self, *args, **kwargs):
+        """Override save para validaciones adicionales"""
+        self.clean()
+        
+        # Normalizar correo
+        if self.correo:
+            self.correo = self.correo.lower().strip()
+        
+        # Normalizar nombres
+        if self.nombre:
+            self.nombre = self.nombre.strip().title()
+        if self.apellido:
+            self.apellido = self.apellido.strip().title()
+        
+        # Auto-asignar is_staff para ADMIN
+        if self.rol == self.ROL_ADMIN:
+            self.is_staff = True
+        
+        super().save(*args, **kwargs)
+    
+    @property
+    def nombre_completo(self):
+        """Retorna nombre completo del usuario"""
         return f"{self.nombre} {self.apellido}".strip()
     
-    def get_short_name(self):
-        """
-        Retorna el nombre corto del usuario
-        """
-        return self.nombre
-    
     @property
-    def is_admin(self):
-        """
-        Verifica si el usuario es administrador
-        """
+    def iniciales(self):
+        """Retorna iniciales del usuario"""
+        nombre_inicial = self.nombre[0] if self.nombre else ''
+        apellido_inicial = self.apellido[0] if self.apellido else ''
+        return f"{nombre_inicial}{apellido_inicial}".upper()
+    
+    def es_admin(self):
+        """Verifica si el usuario es administrador"""
         return self.rol == self.ROL_ADMIN
     
-    @property
-    def is_docente(self):
-        """
-        Verifica si el usuario es docente
-        """
+    def es_docente(self):
+        """Verifica si el usuario es docente"""
         return self.rol == self.ROL_DOCENTE
     
-    @property
-    def is_rrhh(self):
-        """
-        Verifica si el usuario es de recursos humanos
-        """
+    def es_rrhh(self):
+        """Verifica si el usuario es de RRHH"""
         return self.rol == self.ROL_RRHH
     
-    @property
-    def is_contabilidad(self):
-        """
-        Verifica si el usuario es de contabilidad
-        """
+    def es_contabilidad(self):
+        """Verifica si el usuario es de contabilidad"""
         return self.rol == self.ROL_CONTABILIDAD
     
-    @property
-    def is_estudiante(self):
-        """
-        Verifica si el usuario es estudiante
-        """
+    def es_estudiante(self):
+        """Verifica si el usuario es estudiante"""
         return self.rol == self.ROL_ESTUDIANTE
     
-    @property
-    def estado_activo(self):
-        """
-        Verifica si el usuario está en estado activo
-        """
-        return self.estado == self.ESTADO_ACTIVO
+    def esta_activo(self):
+        """Verifica si el usuario está activo"""
+        return self.estado == self.ESTADO_ACTIVO and self.is_active
     
-    def activar(self):
-        """
-        Activa el usuario
-        """
+    def puede_iniciar_sesion(self):
+        """Verifica si el usuario puede iniciar sesión"""
+        return (
+            self.esta_activo() and 
+            self.intentos_login_fallidos < 5 and
+            (not self.fecha_bloqueo or 
+             timezone.now() > self.fecha_bloqueo + timezone.timedelta(hours=1))
+        )
+    
+    def bloquear_usuario(self):
+        """Bloquea el usuario por intentos fallidos"""
+        self.fecha_bloqueo = timezone.now()
+        self.save(update_fields=['fecha_bloqueo'])
+    
+    def desbloquear_usuario(self):
+        """Desbloquea el usuario"""
+        self.intentos_login_fallidos = 0
+        self.fecha_bloqueo = None
+        self.save(update_fields=['intentos_login_fallidos', 'fecha_bloqueo'])
+    
+    def incrementar_intentos_fallidos(self):
+        """Incrementa contador de intentos fallidos"""
+        self.intentos_login_fallidos += 1
+        if self.intentos_login_fallidos >= 5:
+            self.bloquear_usuario()
+        else:
+            self.save(update_fields=['intentos_login_fallidos'])
+    
+    def activar_usuario(self):
+        """Activa el usuario"""
         self.estado = self.ESTADO_ACTIVO
         self.is_active = True
-        self.save(update_fields=['estado', 'is_active', 'fecha_modificacion'])
+        self.save(update_fields=['estado', 'is_active'])
     
-    def desactivar(self):
-        """
-        Desactiva el usuario
-        """
+    def desactivar_usuario(self):
+        """Desactiva el usuario"""
         self.estado = self.ESTADO_INACTIVO
         self.is_active = False
-        self.save(update_fields=['estado', 'is_active', 'fecha_modificacion'])
+        self.save(update_fields=['estado', 'is_active'])
     
-    def suspender(self):
-        """
-        Suspende el usuario
-        """
-        self.estado = self.ESTADO_SUSPENDIDO
-        self.is_active = False
-        self.save(update_fields=['estado', 'is_active', 'fecha_modificacion'])
-    
-    def bloquear(self):
-        """
-        Bloquea el usuario
-        """
-        self.estado = self.ESTADO_BLOQUEADO
-        self.is_active = False
-        self.save(update_fields=['estado', 'is_active', 'fecha_modificacion'])
-    
-    def actualizar_ultimo_acceso(self):
-        """
-        Actualiza la fecha del último acceso
-        """
-        self.fecha_ultimo_acceso = timezone.now()
-        self.save(update_fields=['fecha_ultimo_acceso'])
 
-
-class TokenBlacklist(models.Model):
+class HistorialLogin(models.Model):
     """
-    Modelo para mantener un blacklist de tokens JWT
+    Modelo para registrar el historial de inicios de sesión
     """
-    
-    token = models.CharField(
-        max_length=255,
-        unique=True,
-        help_text='Token JWT que ha sido invalidado (hash)'
-    )
-    
     usuario = models.ForeignKey(
         Usuario,
         on_delete=models.CASCADE,
-        related_name='tokens_invalidados',
-        help_text='Usuario al que pertenecía el token'
+        related_name='historial_logins'
     )
-    
-    fecha_invalidacion = models.DateTimeField(
-        default=timezone.now,
-        help_text='Fecha y hora de invalidación del token'
-    )
-    
-    razon = models.CharField(
-        max_length=100,
-        default='logout',
-        help_text='Razón de la invalidación (logout, cambio_password, etc.)'
-    )
+    fecha_login = models.DateTimeField(auto_now_add=True)
+    ip_address = models.GenericIPAddressField()
+    user_agent = models.TextField(blank=True)
+    exitoso = models.BooleanField(default=True)
+    razon_fallo = models.CharField(max_length=200, blank=True)
     
     class Meta:
-        db_table = 'auth_token_blacklist'
-        verbose_name = 'Token Invalidado'
-        verbose_name_plural = 'Tokens Invalidados'
-        ordering = ['-fecha_invalidacion']
-        indexes = [
-            models.Index(fields=['token']),
-            models.Index(fields=['usuario']),
-            models.Index(fields=['fecha_invalidacion']),
-        ]
+        db_table = 'historial_logins'
+        verbose_name = 'Historial de Login'
+        verbose_name_plural = 'Historial de Logins'
+        ordering = ['-fecha_login']
     
     def __str__(self):
+        estado = "Exitoso" if self.exitoso else "Fallido"
+        return f"{self.usuario.correo} - {estado} - {self.fecha_login}"
+
+
+class SesionUsuario(models.Model):
+    """
+    Modelo para manejar sesiones activas de usuarios
+    """
+    usuario = models.ForeignKey(
+        Usuario,
+        on_delete=models.CASCADE,
+        related_name='sesiones'
+    )
+    token_id = models.CharField(max_length=255, unique=True)
+    refresh_token_id = models.CharField(max_length=255, unique=True)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_expiracion = models.DateTimeField()
+    ip_address = models.GenericIPAddressField()
+    user_agent = models.TextField(blank=True)
+    activa = models.BooleanField(default=True)
+    
+    class Meta:
+        db_table = 'sesiones_usuarios'
+        verbose_name = 'Sesión de Usuario'
+        verbose_name_plural = 'Sesiones de Usuarios'
+        ordering = ['-fecha_creacion']
+    
+    def __str__(self):
+        return f"{self.usuario.correo} - {self.fecha_creacion}"
+    
+    def es_valida(self):
+        """Verifica si la sesión es válida"""
+        return (
+            self.activa and 
+            timezone.now() < self.fecha_expiracion
+        )
+    
+    def cerrar_sesion(self):
+        """Cierra la sesión"""
+        self.activa = False
+        self.save(update_fields=['activa'])
+
+
         return f"Token invalidado - {self.usuario.dni} - {self.fecha_invalidacion}"

@@ -1,31 +1,64 @@
 """
-Repositorio para el modelo Usuario
-Proporciona una capa de abstracción para las operaciones de base de datos
+Repositorio y Factory para el modelo Usuario
+Sistema Pontificia - Auth Service
 """
-from typing import List, Optional, Dict, Any
+from typing import Optional, Dict, Any, List
+from django.db import transaction
 from django.db.models import QuerySet, Q
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ValidationError, ObjectDoesNotExist
+from django.contrib.auth.hashers import make_password
+from .models import Usuario, HistorialLogin, SesionUsuario
 from django.utils import timezone
-from .models import Usuario, TokenBlacklist
+import secrets
+import string
 
 
 class UsuarioRepository:
     """
     Repositorio para operaciones CRUD del modelo Usuario
+    Implementa el patrón Repository para separar la lógica de negocio del acceso a datos
     """
     
     @staticmethod
-    def crear_usuario(datos_usuario: Dict[str, Any]) -> Usuario:
-        """
-        Crea un nuevo usuario en la base de datos
-        
-        Args:
-            datos_usuario (Dict): Diccionario con los datos del usuario
-            
-        Returns:
-            Usuario: Instancia del usuario creado
-        """
-        return Usuario.objects.create_user(**datos_usuario)
+    def crear_usuario(data):
+        """Crear un nuevo usuario con validaciones"""
+        try:
+            with transaction.atomic():
+                # Validar datos requeridos
+                if not data.get('correo'):
+                    raise ValidationError("El correo es requerido")
+                if not data.get('dni'):
+                    raise ValidationError("El DNI es requerido")
+                if not data.get('nombre'):
+                    raise ValidationError("El nombre es requerido")
+                if not data.get('apellido'):
+                    raise ValidationError("El apellido es requerido")
+                
+                # Verificar unicidad de correo y DNI
+                if Usuario.objects.filter(correo=data['correo']).exists():
+                    raise ValidationError("Ya existe un usuario con este correo")
+                if Usuario.objects.filter(dni=data['dni']).exists():
+                    raise ValidationError("Ya existe un usuario con este DNI")
+                
+                # Crear usuario
+                usuario = Usuario.objects.create_user(
+                    correo=data['correo'],
+                    dni=data['dni'],
+                    nombre=data['nombre'],
+                    apellido=data['apellido'],
+                    password=data.get('password'),
+                    telefono=data.get('telefono'),
+                    rol=data.get('rol', Usuario.ROL_ESTUDIANTE),
+                    estado=data.get('estado', Usuario.ESTADO_PENDIENTE),
+                    departamento=data.get('departamento'),
+                    cargo=data.get('cargo'),
+                    avatar=data.get('avatar')
+                )
+                
+                return usuario
+                
+        except Exception as e:
+            raise ValidationError(f"Error al crear usuario: {str(e)}")
     
     @staticmethod
     def obtener_por_id(usuario_id: str) -> Optional[Usuario]:
@@ -277,85 +310,6 @@ class UsuarioRepository:
         }
 
 
-class TokenBlacklistRepository:
-    """
-    Repositorio para operaciones del blacklist de tokens
-    """
-    
-    @staticmethod
-    def agregar_token_blacklist(token: str, usuario: Usuario, razon: str = 'logout') -> TokenBlacklist:
-        """
-        Agrega un token al blacklist
-        
-        Args:
-            token (str): Token a invalidar
-            usuario (Usuario): Usuario propietario del token
-            razon (str): Razón de la invalidación
-            
-        Returns:
-            TokenBlacklist: Instancia del token en blacklist
-        """
-        return TokenBlacklist.objects.create(
-            token=token,
-            usuario=usuario,
-            razon=razon
-        )
-    
-    @staticmethod
-    def token_en_blacklist(token: str) -> bool:
-        """
-        Verifica si un token está en el blacklist
-        
-        Args:
-            token (str): Token a verificar
-            
-        Returns:
-            bool: True si está en blacklist, False si no
-        """
-        return TokenBlacklist.objects.filter(token=token).exists()
-    
-    @staticmethod
-    def limpiar_tokens_expirados() -> int:
-        """
-        Limpia tokens expirados del blacklist (más de 30 días)
-        
-        Returns:
-            int: Número de tokens eliminados
-        """
-        fecha_limite = timezone.now() - timezone.timedelta(days=30)
-        tokens_expirados = TokenBlacklist.objects.filter(
-            fecha_invalidacion__lt=fecha_limite
-        )
-        count = tokens_expirados.count()
-        tokens_expirados.delete()
-        return count
-    
-    @staticmethod
-    def obtener_tokens_usuario(usuario_id: str) -> QuerySet[TokenBlacklist]:
-        """
-        Obtiene todos los tokens invalidados de un usuario
-        
-        Args:
-            usuario_id (str): ID del usuario
-            
-        Returns:
-            QuerySet[TokenBlacklist]: Tokens invalidados del usuario
-        """
-        return TokenBlacklist.objects.filter(usuario_id=usuario_id)
-    
-    @staticmethod
-    def invalidar_todos_tokens_usuario(usuario: Usuario, razon: str = 'security') -> int:
-        """
-        Invalida todos los tokens activos de un usuario
-        (Esta función requeriría integración con el sistema JWT)
-        
-        Args:
-            usuario (Usuario): Usuario cuyos tokens invalidar
-            razon (str): Razón de la invalidación
-            
-        Returns:
-            int: Número de tokens invalidados
-        """
-        # Aquí se podría implementar la lógica para invalidar todos los tokens
+# TokenBlacklist functionality will be implemented later when needed
         # activos del usuario, pero requiere integración con el sistema JWT
         pass

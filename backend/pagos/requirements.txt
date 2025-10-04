@@ -8,7 +8,7 @@ djangorestframework-simplejwt==5.3.0
 # Database
 mysqlclient==2.2.0
 
-# Task Queue
+# Task Queuez
 celery==5.3.4
 redis==5.0.1
 
@@ -17,6 +17,23 @@ drf-spectacular==0.26.5
 
 # Environment Variables
 python-decouple==3.8
+
+# CORS
+django-cors-headers==4.3.1
+
+# File Processing
+Pillow==10.0.1
+reportlab==4.0.4
+openpyxl==3.1.2
+
+# Testing
+factory-boy==3.3.0
+pytest-django==4.7.0
+coverage==7.3.2
+
+# Utilities
+django-extensions==3.2.3
+django-filter==23.3
 
 # CORS Headers
 django-cors-headers==4.3.1

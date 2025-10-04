@@ -1,3 +1,6 @@
+﻿import pymysql
+pymysql.install_as_MySQLdb()
+
 """
 Configuración de Django para asistencia_service
 
@@ -103,14 +106,15 @@ TEMPLATES = [
 # DATABASE
 # ==============================================================================
 
+# Database configuration using environment variables
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': config('DATABASE_NAME', default='asistencia_db'),
-        'USER': config('DATABASE_USER', default='asistencia_user'),
-        'PASSWORD': config('DATABASE_PASSWORD', default='asistencia_password_123'),
-        'HOST': config('DATABASE_HOST', default='localhost'),
-        'PORT': config('DATABASE_PORT', default='3309', cast=int),
+        'NAME': os.environ.get('DB_NAME', 'asistencia_db'),
+        'USER': os.environ.get('DB_USER', 'root'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', 'root'),
+        'HOST': os.environ.get('DB_HOST', 'localhost'),
+        'PORT': os.environ.get('DB_PORT', '3309'),
         'OPTIONS': {
             'charset': 'utf8mb4',
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",

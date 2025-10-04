@@ -1,0 +1,45 @@
+﻿"""
+Services para el microservicio de documentos
+"""
+
+import logging
+from typing import List, Dict, Any, Optional, Tuple
+from decimal import Decimal
+from datetime import datetime, date
+from django.db import transaction
+from django.utils import timezone
+from django.core.files.uploadedfile import UploadedFile
+from django.conf import settings
+
+from .models import (
+    Documento, VersionDocumento, SolicitudDocumento, FlujoDocumento,
+    EstadoDocumento, EstadoSolicitud, TipoDocumento, TipoSolicitud, TipoPaso
+)
+from .repositories import (
+    DocumentoRepository, VersionDocumentoRepository, 
+    SolicitudDocumentoRepository, FlujoDocumentoRepository
+)
+
+logger = logging.getLogger(__name__)
+
+
+class DocumentoService:
+    """Servicio principal para la gestión de documentos"""
+    
+    def __init__(self):
+        self.documento_repo = DocumentoRepository()
+        self.version_repo = VersionDocumentoRepository()
+        self.solicitud_repo = SolicitudDocumentoRepository()
+        self.flujo_repo = FlujoDocumentoRepository()
+    
+    def obtener_documento(self, documento_id: str) -> Optional[Documento]:
+        """Obtiene un documento por su ID"""
+        return self.documento_repo.obtener_por_id(documento_id)
+    
+    def buscar_texto(self, termino: str) -> List[Documento]:
+        """Búsqueda de documentos por texto"""
+        return list(self.documento_repo.buscar_texto(termino))
+    
+    def obtener_flujo_documento(self, documento_id: str) -> List[FlujoDocumento]:
+        """Obtiene el historial de flujo de un documento"""
+        return list(self.flujo_repo.obtener_por_documento(documento_id))

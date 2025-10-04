@@ -1,0 +1,252 @@
+# ===============================================================================
+# SISTEMA PONTIFICIA - INFRAESTRUCTURA
+# Docker Compose para servicios de infraestructura (MySQL, Redis, etc.)
+# ===============================================================================
+
+version: '3.8'
+
+services:
+  # ===============================================================================
+  # BASES DE DATOS MYSQL
+  # ===============================================================================
+  
+  # MySQL para Auth Service
+  mysql_auth:
+    image: mysql:8.0
+    container_name: pontificia_mysql_auth
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: auth_db
+      MYSQL_USER: auth_user
+      MYSQL_PASSWORD: auth_password_123
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_auth_data:/var/lib/mysql
+      - ./mysql/init-auth.sql:/docker-entrypoint-initdb.d/init-auth.sql
+    networks:
+      - pontificia_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # MySQL para Users Service
+  mysql_users:
+    image: mysql:8.0
+    container_name: pontificia_mysql_users
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: users_db
+      MYSQL_USER: users_user
+      MYSQL_PASSWORD: users_password_123
+    ports:
+      - "3308:3306"
+    volumes:
+      - mysql_users_data:/var/lib/mysql
+      - ./mysql/init-users.sql:/docker-entrypoint-initdb.d/init-users.sql
+    networks:
+      - pontificia_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # MySQL para Asistencia Service
+  mysql_asistencia:
+    image: mysql:8.0
+    container_name: pontificia_mysql_asistencia
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: asistencia_db
+      MYSQL_USER: asistencia_user
+      MYSQL_PASSWORD: asistencia_password_123
+    ports:
+      - "3309:3306"
+    volumes:
+      - mysql_asistencia_data:/var/lib/mysql
+      - ./mysql/init-asistencia.sql:/docker-entrypoint-initdb.d/init-asistencia.sql
+    networks:
+      - pontificia_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # MySQL para Documentos Service
+  mysql_documentos:
+    image: mysql:8.0
+    container_name: pontificia_mysql_documentos
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: documentos_db
+      MYSQL_USER: documentos_user
+      MYSQL_PASSWORD: documentos_password_123
+    ports:
+      - "3310:3306"
+    volumes:
+      - mysql_documentos_data:/var/lib/mysql
+      - ./mysql/init-documentos.sql:/docker-entrypoint-initdb.d/init-documentos.sql
+    networks:
+      - pontificia_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # MySQL para Pagos Service
+  mysql_pagos:
+    image: mysql:8.0
+    container_name: pontificia_mysql_pagos
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: pagos_db
+      MYSQL_USER: pagos_user
+      MYSQL_PASSWORD: pagos_password_123
+    ports:
+      - "3311:3306"
+    volumes:
+      - mysql_pagos_data:/var/lib/mysql
+      - ./mysql/init-pagos.sql:/docker-entrypoint-initdb.d/init-pagos.sql
+    networks:
+      - pontificia_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # MySQL para Auditoria Service
+  mysql_auditoria:
+    image: mysql:8.0
+    container_name: pontificia_mysql_auditoria
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: auditoria_db
+      MYSQL_USER: auditoria_user
+      MYSQL_PASSWORD: auditoria_password_123
+    ports:
+      - "3312:3306"
+    volumes:
+      - mysql_auditoria_data:/var/lib/mysql
+      - ./mysql/init-auditoria.sql:/docker-entrypoint-initdb.d/init-auditoria.sql
+    networks:
+      - pontificia_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # MySQL para Reportes Service
+  mysql_reportes:
+    image: mysql:8.0
+    container_name: pontificia_mysql_reportes
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: reportes_db
+      MYSQL_USER: reportes_user
+      MYSQL_PASSWORD: reportes_password_123
+    ports:
+      - "3313:3306"
+    volumes:
+      - mysql_reportes_data:/var/lib/mysql
+      - ./mysql/init-reportes.sql:/docker-entrypoint-initdb.d/init-reportes.sql
+    networks:
+      - pontificia_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # ===============================================================================
+  # REDIS - CACHE Y COLA DE TAREAS
+  # ===============================================================================
+  
+  redis:
+    image: redis:7-alpine
+    container_name: pontificia_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - pontificia_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+  # ===============================================================================
+  # PHPMY ADMIN - ADMINISTRACIÓN DE BASES DE DATOS
+  # ===============================================================================
+  
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: pontificia_phpmyadmin
+    environment:
+      PMA_ARBITRARY: 1
+      PMA_HOST: mysql_auth,mysql_users,mysql_asistencia,mysql_documentos,mysql_pagos,mysql_auditoria,mysql_reportes
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "8080:80"
+    networks:
+      - pontificia_network
+    depends_on:
+      - mysql_auth
+      - mysql_users
+      - mysql_asistencia
+      - mysql_documentos
+      - mysql_pagos
+      - mysql_auditoria
+      - mysql_reportes
+    restart: unless-stopped
+
+# ===============================================================================
+# REDES
+# ===============================================================================
+
+networks:
+  pontificia_network:
+    driver: bridge
+    name: pontificia_network
+
+# ===============================================================================
+# VOLÚMENES
+# ===============================================================================
+
+volumes:
+  # MySQL data volumes
+  mysql_auth_data:
+    name: pontificia_mysql_auth_data
+  mysql_users_data:
+    name: pontificia_mysql_users_data
+  mysql_asistencia_data:
+    name: pontificia_mysql_asistencia_data
+  mysql_documentos_data:
+    name: pontificia_mysql_documentos_data
+  mysql_pagos_data:
+    name: pontificia_mysql_pagos_data
+  mysql_auditoria_data:
+    name: pontificia_mysql_auditoria_data
+  mysql_reportes_data:
+    name: pontificia_mysql_reportes_data
+  
+  # Redis data volume
+  redis_data:
+    name: pontificia_redis_data
